@@ -1,0 +1,1692 @@
+﻿<html>
+<head>
+<title>Calculator</title>
+<script>
+var space = /\s/g;
+var num = /^\d/;
+var sign = /[\-+*\/\^%)(]/;
+var LBR = /\(/;
+var RBR = /\)/;
+var dot = /\./;
+var inp;
+var preAns = 0;
+var overConvert = false;
+var convertFrom;
+var convertTo;
+var n1;
+
+function hideConvert() {
+	if (!overConvert) {
+		var c = document.getElementById("converter");
+		c.innerHTML = "";
+		c.style.left = "-100%";
+	}
+}
+
+function solve(prob) {
+	var get = true;
+	if (prob) get = false;
+	var theNum = 0;
+	var equation = [];
+	var ans = 0;
+	var eq;
+	if (get) {
+		eq = prompt("Enter an equation containing only numbers and these signs: *, /, ÷, +, -, %, ^", "");
+		eq = eq.toLowerCase();
+		inp = eq.toString();
+	}
+	else eq = prob;
+	eq = eq.replace(space, "");
+	eq = eq.split("");
+	for (var z = 0; z < eq.length; z ++) {
+		if (!preAns) preAns = 0;
+		if (eq[z] == "a" && eq[z+1] == "n" && eq[z+2] == "s") {
+			eq[z] = preAns;
+			eq.splice(z+1,2);
+		}
+		if (eq[z] == "p" && eq[z+1] == "i") {
+			eq[z] = Math.PI;
+			eq.splice(z+1,1);
+		}
+		if (eq[z] == "e" && eq[z+1] != "x") eq[z] = Math.E;
+	}
+	for (var a = 0; a < eq.length; a ++) {
+		theNum = 0;
+		var timesBy = 1;
+		var changeTimes = false;
+		if (num.test(eq[a])) {
+			for (;num.test(eq[a]);) {
+				if (num.test(eq[a])) {
+					if (changeTimes) timesBy = timesBy/10;
+					eq[a] -= 0;
+					eq[a] *= timesBy;
+					if (!changeTimes) theNum *= 10;
+					theNum += eq[a];
+				}
+				a ++;
+				if (eq[a] == ".") {
+					changeTimes = true;
+					a ++;
+				}
+			}
+			equation.push(theNum);
+		}
+		if (sign.test(eq[a])) equation.push(eq[a]);
+		if (eq[a] == "e" && eq[a+1] == "x" && eq[a+2] == "p") equation.push("exp");
+		else if (eq[a] == "l" && eq[a+1] == "o" && eq[a+2] == "g") equation.push("log");
+		else if (eq[a] == "a" && eq[a+1] == "b" && eq[a+2] == "s") equation.push("abs");
+		else if (eq[a] == "r" && eq[a+1] == "n" && eq[a+2] == "d") equation.push("rnd");
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "(") {
+			var c = 0;
+			for (var b = a + 1; b < equation.length; b ++) {
+				if (equation[b] == ")") {
+					c = b;
+					b += equation.length;
+				}
+			}
+			equation[a] = "";
+			for (var d = a + 1; d < c; d ++) {
+				equation[a] += equation[d];
+			}
+			equation.splice(a+1, c-a);
+			equation[a] = solve(equation[a]);
+		}
+	}
+	if (equation[0] == "-" && sign.test(equation[1])) equation.splice(0,1,-1,"*");
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "-" && (!num.test(equation[a-1]) || sign.test(equation[a-1])) && num.test(equation[a+1])) {
+			equation[a+1] *= -1;
+			equation.splice(a,1);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "exp") {
+			equation.splice(a,1);
+			equation[a] = Math.exp(equation[a]);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "log") {
+			equation.splice(a,1);
+			equation[a] = Math.log(equation[a]);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "abs") {
+			equation.splice(a,1);
+			equation[a] = Math.abs(equation[a]);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "rnd") {
+			equation.splice(a,1);
+			equation[a] = Math.round(equation[a]);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "^") {
+			equation[a-1] = Math.pow(equation[a-1],equation[a+1]);
+			equation.splice(a,2);
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "/" || equation[a] == "÷") {
+			equation[a-1] = equation[a-1] / equation[a+1];
+			equation.splice(a,2);
+			a --;
+		}
+		else if (equation[a] == "*") {
+			equation[a-1] = equation[a-1] * equation[a+1];
+			equation.splice(a,2);
+			a --;
+		}
+		else if (equation[a] == "%") {
+			equation[a-1] = equation[a-1] % equation[a+1];
+			equation.splice(a,2);
+			a --;
+		}
+	}
+	for (var a = 0; a < equation.length; a ++) {
+		if (equation[a] == "-") {
+			equation[a-1] = equation[a-1] - equation[a+1];
+			equation.splice(a,2);
+			a --;
+		}
+		else if (equation[a] == "+") {
+			equation[a-1] = equation[a-1] + equation[a+1];
+			equation.splice(a,2);
+			a --;
+		}
+	}
+	ans = equation[0];
+	return ans;
+}
+
+function otherAlert() {
+	alert(
+		"Other Commands:\n'ans' -- gets the previous answer\n'pi' -- is replaced with Pi: 3.14159...\n'e' -- is replaced with base E: 2.7182...\n'log' -- gets the natural logorithm of the number\n'exp' -- takes a number and get the number of which it is the natural logorithm\n'abs' -- gets the absolute value of the number\n'rnd' -- rounds the number");
+}
+
+function calcSin() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toSin = solve();
+	inp = "sin( " + toSin + " )";
+	if (which.toLowerCase() == "radians") toSin = Math.sin(toSin);
+	else if (which.toLowerCase() == "degrees") toSin = Math.sin(toSin * Math.PI / 180);
+	inp += " = " + toSin;
+	out.innerHTML += inp + "<br>";
+	preAns = toSin;
+}
+function calcCos() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toCos = solve();
+	inp = "cos( " + toCos + " )";
+	if (which.toLowerCase() == "radians") toCos = Math.cos(toCos);
+	else if (which.toLowerCase() == "degrees") toCos = Math.cos(toCos * Math.PI / 180);
+	inp += " = " + toCos;
+	out.innerHTML += inp + "<br>";
+	preAns = toCos;
+}
+function calcTan() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toTan = solve();
+	inp = "tan( " + toTan + " )";
+	if (which.toLowerCase() == "radians") toTan = Math.tan(toTan);
+	else if (which.toLowerCase() == "degrees") toTan = Math.tan(toTan * Math.PI / 180);
+	inp += " = " + toTan;
+	out.innerHTML += inp + "<br>";
+	preAns = toTan;
+}
+function calcSin1() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toSin = solve();
+	inp = "sin<sup>-1</sup>( " + toSin + " )";
+	if (which.toLowerCase() == "radians") toSin = Math.asin(toSin);
+	else if (which.toLowerCase() == "degrees") toSin = 180 / Math.PI * Math.asin(toSin);
+	inp += " = " + toSin;
+	out.innerHTML += inp + "<br>";
+	preAns = toSin;
+}
+function calcCos1() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toCos = solve();
+	inp = "cos<sup>-1</sup>( " + toCos + " )";
+	if (which.toLowerCase() == "radians") toCos = Math.acos(toCos);
+	else if (which.toLowerCase() == "degrees") toCos = 180 / Math.PI * Math.acos(toCos);
+	inp += " = " + toCos;
+	out.innerHTML += inp + "<br>";
+	preAns = toCos;
+}
+function calcTan1() {
+	var out = document.getElementById("output");
+	var which = prompt("Get answer in radians or degrees?", "degrees");
+	var toTan = solve();
+	inp = "tan<sup>-1</sup>( " + toTan + " )";
+	if (which.toLowerCase() == "radians") toTan = Math.atan(toTan);
+	else if (which.toLowerCase() == "degrees") toTan = 180 / Math.PI * Math.atan(toTan);
+	inp += " = " + toTan;
+	out.innerHTML += inp + "<br>";
+	preAns = toTan;
+}
+
+function solveSine() {
+	alert("You must have an 3 known values, and the known values must include an angle and the length of the side it is opposite of");
+	var deg = confirm("Click 'OK' for degrees, otherwise click 'CANCEL' for radians");
+	var out = document.getElementById("output");
+	var side1 = solve(prompt("What is the length of the side opposite a known angle?", ""));
+	var angle1 = solve(prompt("What is the angle opposite of that side?", ""));
+	var moreSide = confirm("Is there another known side length?");
+	if (deg) angle1 = angle1 / 180 * Math.PI;
+	if (moreSide) var side2 = solve(prompt("What is the length of that side?", ""));
+	else var angle2 = solve(prompt("Then what is the other known angle?", ""));
+	if (deg && angle2) angle2 = angle2 / 180 * Math.PI;
+	var s;
+	var print = "";
+	if (side2) {
+		s = Math.asin(side2 / (side1 / Math.sin(angle1)));
+		if (deg) s = s / Math.PI * 180;
+		print = "The angle opposite the second side is: " + s;
+	}
+	else {
+		s = side1 / Math.sin(angle1) * Math.sin(angle2);
+		print = "The length of the side opposite the second angle is: " + s;
+	}
+	preAns = s;
+	out.innerHTML += print + "<br>";
+}
+
+function solveCosine() {
+	alert("There must be either 3 known side lengths or 2 known side lengths as well as an angle");
+	var deg = confirm("Click 'OK' for degrees, otherwise click 'CANCEL' for radians");
+	var out = document.getElementById("output");
+	var getSide = confirm("Click 'OK' if you want to solve for a side length, otherwise click 'CANCEL' to solve for an angle");
+	var s;
+	var print = "";
+	if (getSide) {
+		var side1 = solve(prompt("What is the first known side length?", ""));
+		var side2 = solve(prompt("What is the second known side length?", ""));
+		var angle1 = solve(prompt("What is the angle opposite the unknown side length?", ""));
+		if (deg) angle1 = angle1 / 180 * Math.PI;
+		s = Math.sqrt(side1 * side1 + side2 * side2 - 2 * side1 * side2 * Math.cos(angle1));
+		print = "The side length is: " + s;
+	}
+	else {
+		var side1 = solve(prompt("What is the length of the side opposite the unknown angle?", ""));
+		var side2 = solve(prompt("What is the second known side length?", ""));
+		var side3 = solve(prompt("What is the third known side length?", ""));
+		s = Math.acos((side1 * side1 - side2 * side2 -  side3 * side3) / (-2 * side2 * side3));
+		if (deg) s = s / Math.PI * 180;
+		print = "The angle is: " + s;
+	}
+	preAns = s;
+	out.innerHTML += print + "<br>";
+}
+
+function showExactTrig() {
+	var out = document.getElementById("output");
+	out.innerHTML += "Sin 30: ½, Sin 45: 1/√2, Sin 60: √3/2<br><span style='font-size:24px;'>Cos 30: √3/2, Cos 45: 1/√2, Cos 60: ½</span><br>Tan 30: 1/√3, Tan 45: 1, Tan 60: √3<br>";
+}
+
+function showTrig() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Trigonometry:</span><br>";
+	out.innerHTML += "<button onClick='calcSin();' class='big'>Sin</button>";
+	out.innerHTML += "<button onClick='calcCos();' class='big'>Cos</button>";
+	out.innerHTML += "<button onClick='calcTan();' class='big'>Tan</button>";
+	out.innerHTML += "<button onClick='calcSin1();' class='big'>Sin<sup>-1</sup></button>";
+	out.innerHTML += "<button onClick='calcCos1();' class='big'>Cos<sup>-1</sup></button>";
+	out.innerHTML += "<button onClick='calcTan1();' class='big'>Tan<sup>-1</sup></button>";
+	out.innerHTML += "<br><button onClick='solveSine();' class='big'>Sine Law</button>";
+	out.innerHTML += "<button onClick='solveCosine();' class='big'>Cosine Law</button>";
+	out.innerHTML += "<br><button onClick='showExactTrig();' class='big'>Show Exact Trig Ratios</button>";
+}
+
+function showEquations() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Equations:</span><br>";
+	out.innerHTML += "<button onClick='solveQuad();' class='big'>Quadratic Formula</button>";
+	out.innerHTML += "<button onClick='genToStan();' class='big'>General - Standard (Vertex)</button>";
+	out.innerHTML += "<button onClick='stanToGen();' class='big'>Standard (Vertex) -- General</button>";
+	out.innerHTML += "<button onClick='dividePoly();' class='big'>Divide Polynomial</button>";
+	out.innerHTML += "<button onClick='solveLinear();' class='big'>Linear System</button>";
+	out.innerHTML += "<button onClick='solveInequality();' class='big'>Inequality</button>";
+}
+
+function solveInequality() {
+	var out = document.getElementById("output");
+	alert("First re-arrange the equation from an inequality to general form, ax^2 + bx + c");
+	var a = solve(prompt("What is a?", ""));
+	var b = solve(prompt("What is b?", ""));
+	var c = solve(prompt("What is c?", ""));
+	var theSign = prompt("What is the sign (><≥≤) in the format (equation), (sign), (zero)?", "><≥≤");
+	var x1 = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+	var x2 = (-b - Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+	var less;
+	var more;
+	var print = a + "X<sup>2</sup> ";
+	if (b < 0) print += b;
+	else print += " + " + b;
+	print += "X ";
+	if (c < 0) print += c;
+	else print += " + " + c;
+	print += " " +  theSign + " 0, X: " + x1 + ", " + x2 + "<br>";
+	if (x1 < x2) {
+		less = x1;
+		more = x2;
+	}
+	else {
+		more = x1;
+		less = x2;
+	}
+	var x = Math.round(less - 1);
+	print += "x < " + less + ", test #: " + x + " » ";
+	var sub = a * x * x + b * x + c;
+	if (theSign == ">" && sub > 0) print += "works!";
+	else if (theSign == "≥" && sub >= 0) print += "works!";
+	else if (theSign == "<" && sub < 0) print += "works!";
+	else if (theSign == "≤" && sub <= 0) print += "works!";
+	else print += "doesn\'t work";
+	print += "<br>";
+
+	x = Math.round(more + 0.5);
+	print += "x > " + more + ", test #: " + x + " » ";
+	sub = a * x * x + b * x + c;
+	if (theSign == ">" && sub > 0) print += "works!";
+	else if (theSign == "≥" && sub >= 0) print += "works!";
+	else if (theSign == "<" && sub < 0) print += "works!";
+	else if (theSign == "≤" && sub <= 0) print += "works!";
+	else print += "doesn\'t work";
+	print += "<br>";
+
+	x = Math.round((more + less) / 0.02) / 100;
+	print += less + " < x < " + more + ", test #: " + x + " » ";
+	sub = a * x * x + b * x + c;
+	if (theSign == ">" && sub > 0) print += "works!";
+	else if (theSign == "≥" && sub >= 0) print += "works!";
+	else if (theSign == "<" && sub < 0) print += "works!";
+	else if (theSign == "≤" && sub <= 0) print += "works!";
+	else print += "doesn\'t work";
+	print += "<br>";
+	out.innerHTML += print;
+}
+
+function solveLinear() {
+	var out = document.getElementById("output");
+	var x = 0;
+	var y = 0;
+	alert("First rearrange the equations into this form:\nay = bx + c \n(or y = (b/a)x + c/a if you like)");
+	var a1 = solve(prompt("What is the co-efficient of x in the first equation?", ""));
+	var c1 = solve(prompt("What is the co-efficient of y in the first equation?", ""));
+	var b1 = solve(prompt("What is the constant term of the first equation?", ""));
+	var a2 = solve(prompt("What is the co-efficient of x in the second equation?", ""));
+	var c2 = solve(prompt("What is the co-efficient of y in the second equation?", ""));
+	var b2 = solve(prompt("What is the constant term of the second equation?", ""));
+	a1 /= c1;
+	b1 /= c1;
+	a2 /= c2;
+	b2 /= c2;
+	a2 -= a1;
+	b2 -= b1;
+	x = -1 * (b2 / a2);
+	y = a1 * x + b1;
+	out.innerHTML += "X = " + x + ", Y = " + y + "<br>";
+}
+
+function dividePoly() {
+	var out = document.getElementById("output");
+	var coEfficients = [];
+	var ansCo = [];
+	var degree = solve(prompt("What is the divisor\'s degree?", ""));
+	for (var z = 0; z <= degree; z ++) {
+		coEfficients.push(solve(prompt("What is the divisor\'s term " + (z+1) + " co-efficient?", "")));
+	}
+	var a = solve(prompt("What is the dividend\'s co-efficient?", ""));
+	var b = solve(prompt("What is the dividend\'s constant term?", ""));
+	var d = b / a;
+	var r = coEfficients[0];
+	ansCo.push(r);
+	for (var v = 1; v < coEfficients.length; v ++) {
+		r *= d;
+		r = coEfficients[v] - r;
+		ansCo.push(r);
+	}
+	var quo = "";
+	for (var z = 1; z < ansCo.length-1; z ++) {
+		if (ansCo[z] < 0) ansCo[z] = " - " + Math.abs(ansCo[z]);
+		else ansCo[z] = " + " + ansCo[z];
+	}
+	for (var z = 0; z < ansCo.length - 1; z ++) {
+		degree --;
+		if (degree < 1) quo += ansCo[z] + " ";
+		else if (degree == 1) quo += ansCo[z] + "X ";
+		else quo += ansCo[z] + "X<sup>" + degree + "</sup> ";
+	}
+	quo += " R: " + ansCo[ansCo.length-1];
+	out.innerHTML += quo;
+}
+
+function genToStan() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is a?", ""));
+	var b = solve(prompt("What is b?", ""));
+	var c = solve(prompt("What is c?", ""));
+	var p = b / (2 * a);
+	var q = c - a * (b/(2*a))*(b/(2*a));
+	if (p < 0) p = " - " + Math.abs(p);
+	else p = " + " + p;
+	if (q < 0) q = " - " + Math.abs(q);
+	else q = " + " + q;
+	out.innerHTML += "y = " + a + "(X" + p + ")<sup>2</sup>" + q + "<br>";
+}
+
+function stanToGen() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is a?", ""));
+	var p = solve(prompt("What is p?", ""));
+	p *= -1;
+	var q = solve(prompt("What is q?", ""));
+	var b = p * 2 * a;
+	var c = q + p * p * a;
+	if (b < 0) b = " - " + Math.abs(b);
+	else b = " + " + b;
+	if (c < 0) c = " - " + Math.abs(c);
+	else c = " + " + c;
+	out.innerHTML += "y = " + a + "X<sup>2</sup>" + b + "X" + c + "<br>";
+}
+
+function solveQuad() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is a?", ""));
+	var b = solve(prompt("What is b?", ""));
+	var c = solve(prompt("What is c?", ""));
+	var pAns = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+	var nAns = (-b - Math.sqrt(b * b - 4 * a * c)) / (2 * a);
+	var pExact = "<div style='font-size:18px; line-height:10px;'>" + -b + " ± " + "√(" + (b * b - 4 * a * c) + ")<br>";
+	for (var k = 46; k < pExact.length; k ++) {
+		pExact = pExact + "-";
+		k ++;
+	}
+	pExact += "<br>" + (2 * a) + "</div>";
+	if (b >= 0) b = " + " + b;
+	else b = " " + b;
+	if (c >= 0) c = " + " + c;
+	else c = " " + c;
+	out.innerHTML += a + "X<sup>2</sup>" + b + "X" + c + pExact + "X = " + pAns + ", "+ nAns + "<br>";
+}
+
+function showVol() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Volume:</span><br>";
+	out.innerHTML += "<button onClick='volCube();' class='big'>Cube</button>";
+	out.innerHTML += "<button onClick='volRect();' class='big'>Rectangular Prism</button>";
+	out.innerHTML += "<button onClick='volSphere();' class='big'>Sphere</button>";
+	out.innerHTML += "<button onClick='volCylinder();' class='big'>Cylinder</button>";
+	out.innerHTML += "<button onClick='volCone();' class='big'>Cone</button>";
+	out.innerHTML += "<button onClick='volPyramid();' class='big'>Pyramid</button>";
+}
+
+function showArea() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Area:</span><br>";
+	out.innerHTML += "<button onClick='areaSquare();' class='big'>Square</button>";
+	out.innerHTML += "<button onClick='areaRect();' class='big'>Rectangle</button>";
+	out.innerHTML += "<button onClick='areaCircle();' class='big'>Circle</button>";
+	out.innerHTML += "<button onClick='areaTriangle();' class='big'>Triangle</button>";
+	out.innerHTML += "<button onClick='areaSphere();' class='big'>Sphere</button>";
+	out.innerHTML += "<button onClick='areaCone();' class='big'>Cone</button>";
+	out.innerHTML += "<button onClick='areaCube();' class='big'>Cube</button>";
+	out.innerHTML += "<button onClick='areaPoly();' class='big'>Polygon (5+ sides)</button>";
+}
+
+function volCube() {
+	var out = document.getElementById("output");
+	var s = solve(prompt("What is the side length?", ""));
+	var measure = prompt("What is the unit?", "");
+	s = s * s * s;
+	preAns = s;
+	out.innerHTML += "S<sup>3</sup> = " + s + "" + measure + "<sup>3</sup><br>";
+}
+
+function volRect() {
+	var out = document.getElementById("output");
+	var w = solve(prompt("What is the width?", ""));
+	var l = solve(prompt("What is the length?", ""));
+	var h = solve(prompt("What is the height?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = w * l * h;
+	preAns = s;
+	out.innerHTML += "W * L * H = " + s + "" + measure + "<sup>3</sup><br>";
+}
+
+function volSphere() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius (half the diameter)?", ""));
+	var measure = prompt("What is the unit?", "");
+	r = 4 / 3 * Math.PI * r * r * r;
+	preAns = r;
+	out.innerHTML += "4 / 3 * π * r<sup>3</sup> = " + r + "" + measure + "<sup>3</sup><br>";
+}
+
+function volCylinder() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius (half the diameter)?", ""));
+	var h = solve(prompt("What is the height?", ""));
+	var v = Math.PI * r * r * h;
+	preAns = v;
+	var measure = prompt("What is the unit?", "");
+	out.innerHTML += "π * r<sup>2</sup> * h = " + v + "" + measure + "<sup>3</sup><br>";
+}
+
+function volPyramid() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is the area of the base?", ""));
+	var h = solve(prompt("What is the height?", ""));
+	var measure = prompt("What is the unit?", "");
+	var r = a * h / 3;
+	preAns = r;
+	out.innerHTML += "A * h / 3 = " + r + measure + "<sup>3</sup><br>";
+}
+
+function volCone() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius of the base (half the diameter)?", ""));
+	var h = solve(prompt("What is the height?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = Math.PI / 3 * r * r * h;
+	preAns = s;
+	out.innerHTML += "π * r<sup>2</sup> * h / 3 = " + s + "" + measure + "<sup>3</sup><br>";
+}
+
+function areaSquare() {
+	var out = document.getElementById("output");
+	var s = solve(prompt("What is the side length?", ""));
+	var measure = prompt("What is the unit?", "");
+	s = s * s;
+	preAns = s;
+	out.innerHTML += "S<sup>2</sup> = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaRect() {
+	var out = document.getElementById("output");
+	var l = solve(prompt("What is the length?", ""));
+	var w = solve(prompt("What is the width?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = l * w;
+	preAns = s;
+	out.innerHTML += "L * W = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaCircle() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius (half the diameter)?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = Math.PI * r * r;
+	preAns = s;
+	out.innerHTML += "π * r<sup>2</sup> = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaTriangle() {
+	var out = document.getElementById("output");
+	var b = solve(prompt("What is the base length?", ""));
+	var h = solve(prompt("What is the height?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = 1/2 * b * h;
+	preAns = s;
+	out.innerHTML += "1/2 * b * h = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaSphere() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius (half the diameter)?", ""));
+	var measure = prompt("What is the unit?", "");
+	var s = Math.PI * r * r * 4;
+	preAns = s;
+	out.innerHTML += "4πr<sup>2</sup> = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaCube() {
+	var out = document.getElementById("output");
+	var s = solve(prompt("What is the side length?", ""));
+	var measure = prompt("What is the unit?", "");
+	s = s * s * 6;
+	preAns = s;
+	out.innerHTML += "S<sup>2</sup> * 6 = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaPoly() {
+	var out = document.getElementById("output");
+	var sides = solve(prompt("How many sides does the shape have?", ""));
+	var s = solve(prompt("What is the side length?", ""));
+	var h = solve(prompt("What is the height from a side to the middle?", ""));
+	var measure = prompt("What is the unit?", "");
+	s = s * h / 2 * sides;
+	preAns = s;
+	out.innerHTML += "sides * s * h / 2 = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function areaCone() {
+	var out = document.getElementById("output");
+	var r = solve(prompt("What is the radius of the base (half the diameter)?", ""));
+	var s = solve(prompt("What is the side length from base to point?", ""));
+	var measure = prompt("What is the unit?", "");
+	s = Math.PI * r * s + Math.PI * r * r;
+	preAns = s;
+	out.innerHTML += "π * r * s + Πr<sup>2</sup> = " + s + "" + measure + "<sup>2</sup><br>";
+}
+
+function showSequences() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Arithmetic Sequences:<br>Solve for:</span><br>";
+	out.innerHTML += "<button onClick='tArith();' class='big'>Term Value</button>";
+	out.innerHTML += "<button onClick='sArith();' class='big'>Sum</button>";
+	out.innerHTML += "<button onClick='dArith();' class='big'>Common Difference</button>";
+	out.innerHTML += "<button onClick='aArith();' class='big'>First Term</button>";
+	out.innerHTML += "<button onClick='nArith();' class='big'>Term</button>";
+}
+
+function showSeries() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Geometric Series:<br>Solve for:</span><br>";
+	out.innerHTML += "<button onClick='tGeo();' class='big'>Term Value</button>";
+	out.innerHTML += "<button onClick='sGeo();' class='big'>Sum</button>";
+	out.innerHTML += "<button onClick='rGeo();' class='big'>Common Ratio</button>";
+	out.innerHTML += "<button onClick='aGeo();' class='big'>First Term</button>";
+	out.innerHTML += "<button onClick='nGeo();' class='big'>Term</button>";
+}
+
+function tArith() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	var d = solve(prompt("What is the common difference (d)?", ""));
+	var s = a + d * (n - 1);
+	var print = "t<sub>n</sub> = a + (n - 1)d = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function sArith() {
+	var out = document.getElementById("output");
+	var knowT = confirm("Click 'OK' if you know the value of the first term, otherwise click cancel");
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	if (!knowT) var d = solve(prompt("What is the common difference (d)?", ""));
+	var t;
+	var f;
+	if (knowT) t = solve(prompt("What is the value of term n?", ""));
+	else t = a + d * (n - 1);
+	var s = n / 2 * (a + t);
+	if (knowT) f = "n / 2 (a + t<sub>n</sub>)";
+	else f = "n / 2 (2a + (n - 1)d)";
+	var print = "S<sub>n</sub> = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function dArith() {
+	var out = document.getElementById("output");
+	var t = solve(prompt("What is the value of term n?", ""));
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	var s = (t - a) / (n - 1);
+	var f = "(t<sub>n</sub> - a) / (n - 1)";
+	var print = "d = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function aArith() {
+	var out = document.getElementById("output");
+	var t = solve(prompt("What is the value of term n?", ""));
+	var d = solve(prompt("What is the common difference (d)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	var s = t - (n - 1) * d;
+	var f = "t<sub>n</sub> - (n - 1)d";
+	var print = "a = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function nArith() {
+	var out = document.getElementById("output");
+	var t = solve(prompt("What is the value of term n?", ""));
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var d = solve(prompt("What is the common difference (d)?", ""));
+	var s = (t - a) / d + 1;
+	var f = "(t<sub>n</sub> - a) / d + 1";
+	var print = "n = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function tGeo() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var r = solve(prompt("What is the common ratio (r)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	var s = a * Math.pow(r,n-1);
+	var f = "ar<sup>n - 1</sup>";
+	var print = "t<sub>n</sub> = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function sGeo() {
+	var out = document.getElementById("output");
+	var knowT = confirm("Click 'OK' if you know the value of term n, if you know the term, n, click 'CANCEL'");
+	var a = solve(prompt("What is the value of the first term (a)?", ""));
+	var r = solve(prompt("What is the common ratio (r, and r ≠ 1)?", ""));
+	if (knowT) var t = solve(prompt("What is the value of term n (t)?", ""));
+	else var n = solve(prompt("What is the term (n)?", ""));
+	if (knowT) {
+		var s = (r * t - a) / (r - 1);
+		var f = "(rt<sub>n</sub> - a) / (r - 1)";
+	}
+	else {
+		var s = a * (Math.pow(r,n) - 1) / (r - 1);
+		var f = "a(r<sup>n</sup> - 1) / (r - 1)";
+	}
+	var print = "S<sub>n</sub> = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function rGeo() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is the value of the first term (a, a ≠ 0)?", ""));
+	var t = solve(prompt("What is the value of term n (t)?", ""));
+	var n = solve(prompt("What is the term (n, n ≠ 1)?", ""));
+	var s = Math.pow(t / a, 1 / (n-1));
+	var f = "(t<sub>n</sub> / a)<sup>1 / (n - 1)</sup> ";
+	var print = "r = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function aGeo() {
+	var out = document.getElementById("output");
+	var t = solve(prompt("What is the value of term n (t)?", ""));
+	var r = solve(prompt("What is the common ratio (r, and r≠ 0)?", ""));
+	var n = solve(prompt("What is the term (n)?", ""));
+	var s = t / Math.pow(r,(n - 1));
+	var f = "t<sub>n</sub> / r<sup>n - 1</sup>";
+	var print = "a = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function nGeo() {
+	var out = document.getElementById("output");
+	var a = solve(prompt("What is the value of the first term (a, a ≠ 0)?", ""));
+	var t = solve(prompt("What is the value of term n (t)?", ""));
+	var r = solve(prompt("What is the common ratio (r, and r ≠ 0?", ""));
+	var s = Math.pow(t / a, 1 / r) + 1;
+	var f = "(t<sub>n</sub> / a)<sup>1 / r</sup> + 1";
+	var print = "n = " + f + " = " + s;
+	out.innerHTML += print + "<br>";
+}
+
+function showConvert() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Unit Conversions:</span><br>";
+	out.innerHTML += "<button onClick='overConvert=true; getDist();' class='big'>Distance</button>";
+	out.innerHTML += "<button onClick='overConvert=true; getTemp();' class='big'>Temperature</button>";
+	out.innerHTML += "<button onClick='overConvert=true; getVolume();' class='big'>Volume</button>";
+	out.innerHTML += "<button onClick='overConvert=true; getMass();' class='big'>Mass</button>";
+	out.innerHTML += "<button onClick='overConvert=true; getTime();' class='big'>Time</button>";
+	out.innerHTML += "<button onClick='overConvert=true; getPrefix();' class='big'>Measurement Prefixes</button>";
+}
+
+function getDist() {
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	convertFrom = "Millimeters";
+	convertTo = "Millimeters";
+	n1 = 0;
+	out.innerHTML = "<br><br><br>";
+	out.innerHTML += "Convert from: <input size='8' value='0' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select onChange='convertFrom=this.value;'><option>Millimeters</option><option>Centimeters</option><option>Meters</option><option>Kilometers</option><option>Inches</option><option>Feet</option><option>Yards</option><option>Miles</option></select><br><br>";
+	out.innerHTML += "Convert to: <select onChange='convertTo=this.value;'><option>Millimeters</option><option>Centimeters</option><option>Meters</option><option>Kilometers</option><option>Inches</option><option>Feet</option><option>Yards</option><option>Miles</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertDist(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertDist(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "Millimeters") num1 /= 1000;
+	else if (from == "Centimeters") num1 /= 100;
+	else if (from == "Kilometers") num1 *= 1000;
+	else if (from == "Inches") num1 *= 0.0254;
+	else if (from == "Feet") num1 *= 0.3048;
+	else if (from == "Yards") num1 *= 0.9144;
+	else if (from == "Miles") num1 *= 1609.344;
+	if (to == "Millimeters") num1 *= 1000;
+	else if (to == "Centimeters") num1 *= 100;
+	else if (to == "Kilometers") num1 /= 1000;
+	else if (to == "Inches") num1 *= 39.37;
+	else if (to == "Feet") num1 *= 3.2808;
+	else if (to == "Yards") num1 *= 1.0936;
+	else if (to == "Miles") num1 *= 0.00062137;
+	var howMany = 0;
+	var count = 1;
+	num1 = Math.round(num1 * Math.pow(10,14)) / Math.pow(10,14);
+	var sdu = num1.toString().split(".");
+	if (sdu[1]) {
+	while (sdu[1].length > count) { howMany ++; count ++;}
+	}
+	if (howMany <= 0) howMany ++;
+	if (sdu[1] && sdu[1].length < 6) howMany = sdu[1].length;
+	num1 = Math.round(num1 * Math.pow(10,howMany)) / Math.pow(10,howMany);
+	preAns = num1;
+	out.innerHTML += num1 + " " + to + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function getTemp() {
+	window.scrollTo(0,0);
+	convertFrom = "Celsius";
+	convertTo = "Celsius";
+	n1 = 0;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>";
+	out.innerHTML += "Convert from: <input size='8' value='0' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select onChange='convertFrom=this.value;'><option>Celsius</option><option>Fahrenheit</option><option>Kelvin</option></select><br><br>";
+	out.innerHTML += "Convert to: <select onChange='convertTo=this.value;'><option>Celsius</option><option>Fahrenheit</option><option>Kelvin</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertTemp(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertTemp(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "Fahrenheit") num1 = (num1 - 32) / 1.8;
+	else if (from == "Kelvin") num1 -= 273.15;
+	if (to == "Fahrenheit") num1 = num1 * 1.8 + 32;
+	else if (to == "Kelvin") num1 += 273.15;
+	var howMany = 0;
+	var count = 1;
+	num1 = Math.round(num1 * Math.pow(10,14)) / Math.pow(10,14);
+	var sdu = num1.toString().split(".");
+	if (sdu[1]) {
+	while (sdu[1].length > count) { howMany ++; count ++;}
+	}
+	if (howMany <= 0) howMany ++;
+	if (sdu[1] && sdu[1].length < 6) howMany = sdu[1].length;
+	num1 = Math.round(num1 * Math.pow(10,howMany)) / Math.pow(10,howMany);
+	preAns = num1;
+	out.innerHTML += num1 + " " + to + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function getVolume() {
+	window.scrollTo(0,0);
+	convertFrom = "Milliliters";
+	convertTo = "Milliliters";
+	n1 = 0;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>";
+	out.innerHTML += "Convert from: <input size='8' value='0' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select onChange='convertFrom=this.value;'><option>Milliliters</option><option>Liters</option><option>Teaspoons</option><option>Tablespoons</option><option>Cups</option><option>Fluid Ounces</option><option>Pints</option><option>Quarts</option><option>Gallons</option><option>Cubic Inches</option></select><br><br>";
+	out.innerHTML += "Convert to: <select onChange='convertTo=this.value;'><option>Milliliters</option><option>Liters</option><option>Teaspoons</option><option>Tablespoons</option><option>Cups</option><option>Fluid Ounces</option><option>Pints</option><option>Quarts</option><option>Gallons</option><option>Cubic Inches</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertVolume(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertVolume(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "Milliliters") num1 /= 1000;
+	else if (from == "Teaspoons") num1 /= 202.88;
+	else if (from == "Tablespoons") num1 /= 67.628;
+	else if (from == "Cups") num1 /= 4.2268;
+	else if (from == "Fluid Ounces") num1 /= 33.814;
+	else if (from == "Pints") num1 /= 2.1134;
+	else if (from == "Quarts") num1 /= 1.0567;
+	else if (from == "Gallons") num1 /= 0.26417;
+	else if (from == "Cubic Inches") num1 /= 61.0237;
+	if (to == "Milliliters") num1 *= 1000;
+	else if (to == "Teaspoons") num1 *= 202.88;
+	else if (to == "Tablespoons") num1 *= 67.628;
+	else if (to == "Cups") num1 *= 4.2268;
+	else if (to == "Fluid Ounces") num1 *= 33.814;
+	else if (to == "Pints") num1 *= 2.1134;
+	else if (to == "Quarts") num1 *= 1.0567;
+	else if (to == "Gallons") num1 *= 0.26417;
+	else if (to == "Cubic Inches") num1 *= 61.0237;
+	var howMany = 0;
+	var count = 1;
+	num1 = Math.round(num1 * Math.pow(10,14)) / Math.pow(10,14);
+	var sdu = num1.toString().split(".");
+	if (sdu[1]) {
+	while (sdu[1].length > count) { howMany ++; count ++;}
+	}
+	if (howMany <= 0) howMany ++;
+	if (sdu[1] && sdu[1].length < 6) howMany = sdu[1].length;
+	num1 = Math.round(num1 * Math.pow(10,howMany)) / Math.pow(10,howMany);
+	preAns = num1;
+	out.innerHTML += num1 + " " + to + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function getMass() {
+	window.scrollTo(0,0);
+	convertFrom = "Grams";
+	convertTo = "Grams";
+	n1 = 0;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>";
+	out.innerHTML += "Convert from: <input size='8' value='0' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select onChange='convertFrom=this.value;'><option>Grams</option><option>Kilograms</option><option>Ounces</option><option>Pounds</option><option>US Tons</option><option>Metric Tons</option></select><br><br>";
+	out.innerHTML += "Convert to: <select onChange='convertTo=this.value;'><option>Grams</option><option>Kilograms</option><option>Ounces</option><option>Pounds</option><option>US Tons</option><option>Metric Tons</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertMass(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertMass(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "Grams") num1 /= 1000;
+	else if (from == "Ounces") num1 /= 35.27396583786957;
+	else if (from == "Pounds") num1 /= 2.204622476037958;
+	else if (from == "US Tons") num1 *= 907.2;
+	else if (from == "Metric Tons") num1 *= 1000;
+	if (to == "Grams") num1 *= 1000;
+	else if (to == "Ounces") num1 *= 35.27396583786957;
+	else if (to == "Pounds") num1 *= 2.204622476037958;
+	else if (to == "US Tons") num1 /= 907.2;
+	else if (to == "Metric Tons") num1 /= 1000;
+	var howMany = 0;
+	var count = 1;
+	num1 = Math.round(num1 * Math.pow(10,14)) / Math.pow(10,14);
+	var sdu = num1.toString().split(".");
+	if (sdu[1]) {
+	while (sdu[1].length > count) { howMany ++; count ++;}
+	}
+	if (howMany <= 0) howMany ++;
+	if (sdu[1] && sdu[1].length < 6) howMany = sdu[1].length;
+	num1 = Math.round(num1 * Math.pow(10,howMany)) / Math.pow(10,howMany);
+	preAns = num1;
+	out.innerHTML += num1 + " " + to + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function getTime() {
+	window.scrollTo(0,0);
+	convertFrom = "Milliseconds";
+	convertTo = "Milliseconds";
+	n1 = 0;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>";
+	out.innerHTML += "Convert from: <input size='8' value='0' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select onChange='convertFrom=this.value;'><option>Milliseconds</option><option>Seconds</option><option>Minutes</option><option>Hours</option></select><br><br>";
+	out.innerHTML += "Convert to: <select onChange='convertTo=this.value;'><option>Milliseconds</option><option>Seconds</option><option>Minutes</option><option>Hours</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertTime(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertTime(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "Milliseconds") num1 /= 1000;
+	else if (from == "Minutes") num1 *= 60;
+	else if (from == "Hours") num1 *= 3600;
+	if (to == "Milliseconds") num1 *= 1000;
+	else if (to == "Minutes") num1 /= 60;
+	else if (to == "Hours") num1 /= 3600;
+	var howMany = 0;
+	var count = 1;
+	num1 = Math.round(num1 * Math.pow(10,14)) / Math.pow(10,14);
+	var sdu = num1.toString().split(".");
+	if (sdu[1]) {
+	while (sdu[1].length > count) { howMany ++; count ++;}
+	}
+	if (howMany <= 0) howMany ++;
+	if (sdu[1] && sdu[1].length < 6) howMany = sdu[1].length;
+	num1 = Math.round(num1 * Math.pow(10,howMany)) / Math.pow(10,howMany);
+	preAns = num1;
+	out.innerHTML += num1 + " " + to + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function showFormulae() {
+	var out = document.getElementById("btns");
+	out.innerHTML = "<span style='color:black;'>Formulas:</span><br>";
+	out.innerHTML += "<button onClick='getSpeed();' class='big'>Speed/Distance/Time</button>";
+	out.innerHTML += "<button onClick='getWork();' class='big'>Work/Force/Distance</button>";
+	out.innerHTML += "<button onClick='getPEnergy();' class='big'>Potential Energy/Mass/Height</button>";
+	out.innerHTML += "<button onClick='getKEnergy();' class='big'>Kinetic Energy/Mass/Speed</button>";
+	out.innerHTML += "<button onClick='getMEnergy();' class='big'>Mechanical Energy/Mass/Height/Speed</button>";
+	out.innerHTML += "<button onClick='getEfficiency();' class='big'>Efficiency/Input/Output</button>";
+	out.innerHTML += "<button onClick='getAcceleration();' class='big'>Acceleration/Speed/Time</button>";
+}
+
+function getSpeed() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Speed/Distance/Time<br><br><br>";
+	out.innerHTML += "What to find: <select id='choice'><option>Speed</option><option>Distance</option><option>Time</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveSpeed(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveSpeed(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Speed") var S = solve(prompt("What is the speed?", ""));
+	if (find != "Distance") var d = solve(prompt("What is the distance?", ""));
+	if (find != "Time") var t = solve(prompt("What is the time?", ""));
+	if (S) a *= S;
+	if (t) a *= t;
+	if (d) a = d / a;
+	preAns = a;
+	if (find == "Speed") out.innerHTML += "v = d / t = " + a + "<br>";
+	else if (find == "Distance") out.innerHTML += "d = v * t = " + a + "<br>";
+	else if (find == "Time") out.innerHTML += "t = d / v = " + a + "<br>";
+}
+
+function getWork() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Work/Force/Distance<br><br><br>";
+	out.innerHTML += "What to find: <select id='choice'><option>Work</option><option>Force</option><option>Distance</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveWork(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveWork(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Work") var W = solve(prompt("What is the work (Joules)?", ""));
+	if (find != "Force") var F = solve(prompt("What is the force (Newtons)?", ""));
+	if (find != "Distance") var d = solve(prompt("What is the distance (meters)?", ""));
+	if (F) a *= F;
+	if (d) a *= d;
+	if (W) a = W / a;
+	preAns = a;
+	if (find == "Work") out.innerHTML += "W = F * d = " + a + "<br>";
+	else if (find == "Force") out.innerHTML += "F = W / d = " + a + "<br>";
+	else if (find == "Distance") out.innerHTML += "d = W / F = " + a + "<br>";
+}
+
+function getPEnergy() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Potential Energy/Mass/Height<br><br><br>";
+	out.innerHTML += "What to find: <select style='max-width:160px;' id='choice'><option>Potential Energy</option><option>Mass</option><option>Height</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solvePEnergy(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solvePEnergy(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 9.81;
+	if (find != "Potential Energy") var E = solve(prompt("What is the potential energy (Joules)?", ""));
+	if (find != "Mass") var m = solve(prompt("What is the mass (Kilograms)?", ""));
+	if (find != "Height") var h = solve(prompt("What is the height (meters)?", ""));
+	if (h) a *= h;
+	if (m) a *= m;
+	if (E) a = E / a;
+	preAns = a;
+	if (find == "Potential Energy") out.innerHTML += "E<sub>P</sub> = mgh = " + a + "<br>";
+	else if (find == "Mass") out.innerHTML += "m = E<sub>P</sub> / (gh) = " + a + "<br>";
+	else if (find == "Height") out.innerHTML += "h = E<sub>P</sub> / (mg) = " + a + "<br>";
+}
+
+function getKEnergy() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Kinetic Energy/Mass/Height<br><br><br>";
+	out.innerHTML += "What to find: <select style='max-width:150px;' id='choice'><option>Kinetic Energy</option><option>Mass</option><option>Speed</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveKEnergy(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveKEnergy(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Kinetic Energy") var E = solve(prompt("What is the kinetic energy (Joules)?", ""));
+	if (find != "Mass") var m = solve(prompt("What is the mass (Kilograms)?", ""));
+	if (find != "Speed") var S = solve(prompt("What is the speed (meters/second)?", ""));
+	if (S) a *= S * S;
+	if (m) a *= m;
+	if (E) a = 2 * E / a;
+	else a /= 2;
+	if (!S) a = Math.sqrt(a);
+	preAns = a;
+	if (find == "Kinetic Energy") out.innerHTML += "E<sub>K</sub> = 1/2mv<sup>2</sup> = " + a + "<br>";
+	else if (find == "Mass") out.innerHTML += "m = 2E<sub>K</sub> / v<sup>2</sup> = " + a + "<br>";
+	else if (find == "Speed") out.innerHTML += "v = √(2E<sub>K</sub> / m) = " + a + "<br>";
+}
+
+function getMEnergy() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Mechanical Energy/Mass/Height/Speed<br><br><br>";
+	out.innerHTML += "What to find: <select style='max-width:185px;' id='choice'><option>Mechanical Energy</option><option>Mass</option><option>Height</option><option>Speed</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveMEnergy(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveMEnergy(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Mechanical Energy") var E = solve(prompt("What is the mechanical energy (Joules)?", ""));
+	if (find != "Mass") var m = solve(prompt("What is the mass (Kilograms)?", ""));
+	if (find != "Height") var h = solve(prompt("What is the height (meters)?", ""));
+	if (find != "Speed") var v = solve(prompt("What is the speed (meters/second)?", ""));
+	if (!h) a = (E - .5 * m * v * v) / (m * 9.81);
+	else if (!m) a = E / (9.81 * h + .5 * v * v);
+	else if (!E) a = m * 9.81 * h + .5 * m * v * v;
+	else if (!v) a = Math.sqrt((E - m * 9.81 * h) / (.5 * m));
+	preAns = a;
+	if (find == "Mechanical Energy") out.innerHTML += "E<sub>M</sub> = mgh + 1/2mv<sup>2</sup> = " + a + "<br>";
+	else if (find == "Mass") out.innerHTML += "m = E<sub>M</sub> / (gh + 1/2v<sup>2</sup>) = " + a + "<br>";
+	else if (find == "Height") out.innerHTML += "h = (E<sub>M</sub> - 1/2mv<sup>2</sup>) / (mg) = " + a + "<br>";
+	else if (find == "Speed") out.innerHTML += "v = √((E<sub>M</sub> - mgh) / (1/2m)) = " + a + "<br>";
+}
+
+function getEfficiency() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Efficiency/Input/Output<br><br><br>";
+	out.innerHTML += "What to find: <select id='choice'><option>Efficiency</option><option>Input</option><option>Output</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveEfficiency(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveEfficiency(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Efficiency") var E = solve(prompt("What is the efficiency?", ""));
+	if (find != "Input") var i = solve(prompt("What is the input?", ""));
+	if (find != "Output") var o = solve(prompt("What is the output?", ""));
+	if (E) a *= E;
+	if (i) a *= i;
+	a /= 100;
+	if (o) a = o / a;
+	preAns = a;
+	if (find == "Efficiency") out.innerHTML += "Efficiency = Output / Input * 100% = " + a + "%<br>";
+	else if (find == "Input") out.innerHTML += "Input = Output / (Efficiency / 100%) = " + a + "<br>";
+	else if (find == "Output") out.innerHTML += "Output = Efficiency / 100% * Input = " + a + "<br>";
+}
+
+function getAcceleration() {
+	overConvert = true;
+	window.scrollTo(0,0);
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>Acceleration/Change in Speed/Time<br><br><br>";
+	out.innerHTML += "What to find: <select style='max-width:165px;' id='choice'><option>Acceleration</option><option>Change in Speed</option><option>Time</option></select><br><br>";
+	out.innerHTML += "<span onClick=\"solveAcceleration(document.getElementById('choice').value);\" class='sp'>Solve</span>";
+}
+
+function solveAcceleration(find) {
+	var out = document.getElementById("output");
+	overConvert = false;
+	hideConvert();
+	var a = 1;
+	if (find != "Acceleration") var A = solve(prompt("What is the Acceleration?", ""));
+	if (find != "Change in Speed") var v = solve(prompt("What is the change in speed (can be entered as new speed subtract initial speed)?", ""));
+	if (find != "Time") var t = solve(prompt("What is the time?", ""));
+	if (A) a *= A;
+	if (t) a *= t;
+	if (v) a = v / a;
+	preAns = a;
+	if (find == "Acceleration") out.innerHTML += "a = v / t = " + a + "<br>";
+	else if (find == "Change in Speed") out.innerHTML += "v = a * t = " + a + "<br>";
+	else if (find == "Time") out.innerHTML += "t = v / a = " + a + "<br>";
+}
+
+function toFraction() {
+	var num = solve();
+	var neg = false;
+	if (num < 0) neg = true;
+	num = Math.abs(num);
+	preAns = num;
+	var frac = "";
+	var converted = false;
+	for (var a = 1; a < 500 && !converted; a ++) {
+		for (var b = 1; b < 500 && !converted; b ++) {
+			if (a / b == num) {
+				converted = true;
+				frac = a + " / " + b;
+			}
+			else if (Math.sqrt(a) / b == num) {
+				converted = true;
+				frac = "√" + a + " / " + b;
+			}
+			else if (a / Math.sqrt(b) == num) {
+				converted = true;
+				frac = a + " / √" + b;
+			}
+			else if (Math.sqrt(a) / Math.sqrt(b) == num) {
+				converted = true;
+				frac = "√(" + a + " / " + b + ")";
+			}
+		}
+	}
+	if (neg) {
+		num *= -1;
+		if (converted) frac = "- " + frac;
+	}
+	if (!converted) frac = num + " can not be converted to a fraction.";
+	else frac = num + " --> " + frac;
+	document.getElementById("output").innerHTML += frac + "<br>";
+}
+
+function getPrefix() {
+	window.scrollTo(0,0);
+	convertFrom = "exa - E - 10^18";
+	convertTo = "exa - E - 10^18";
+	n1 = 1;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br><br>";
+	out.innerHTML += "Convert: <input size='6' value='1' onChange='n1 = this.value;'/> ";
+	out.innerHTML += " <select style='max-width:44%;' onChange='convertFrom=this.value;'><option>exa - E - 10^18</option><option>peta - P - 10^15</option><option>tetra - T - 10^12</option><option>giga - G - 10^9</option><option>mega - M - 10^6</option><option>kilo - k - 10^3</option><option>hecto - h - 10^2</option><option>deka - da - 10^1</option><option>BASE - 10^0</option><option>deci - d - 10^-1</option><option>centi - c - 10^-2</option><option>milli - m - 10^-3</option><option>micro - µ - 10^-6</option><option>nano - n - 10^-9</option><option>pico - p - 10^-12</option><option>femto - f - 10^-15</option><option>atto - a - 10^-18</option></select><br><br>";
+	out.innerHTML += "Convert to: <select style='max-width:44%;' onChange='convertTo=this.value;'><option>exa - E - 10^18</option><option>peta - P - 10^15</option><option>tetra - T - 10^12</option><option>giga - G - 10^9</option><option>mega - M - 10^6</option><option>kilo - k - 10^3</option><option>hecto - h - 10^2</option><option>deka - da - 10^1</option><option>BASE - 10^0</option><option>deci - d - 10^-1</option><option>centi - c - 10^-2</option><option>milli - m - 10^-3</option><option>micro - µ - 10^-6</option><option>nano - n - 10^-9</option><option>pico - p - 10^-12</option><option>femto - f - 10^-15</option><option>atto - a - 10^-18</option></select><br><br>";
+	out.innerHTML += "<span class='sp' onClick='convertPrefix(convertFrom, convertTo, n1);'>Convert</span>";
+}
+
+function convertPrefix(from, to, num1) {
+	var out = document.getElementById("output");
+	num1 = solve(num1);
+	if (from == "exa - E - 10^18") num1 *= Math.pow(10, 18);
+	else if (from == "peta - P - 10^15") num1 *= Math.pow(10, 15);
+	else if (from == "tetra - T - 10^12") num1 *= Math.pow(10, 12);
+	else if (from == "giga - G - 10^9") num1 *= Math.pow(10, 9);
+	else if (from == "mega - M - 10^6") num1 *= Math.pow(10, 6);
+	else if (from == "kilo - k - 10^3") num1 *= Math.pow(10, 3);
+	else if (from == "hecto - h - 10^2") num1 *= Math.pow(10, 2);
+	else if (from == "deka - da - 10^1") num1 *= Math.pow(10, 1);
+	else if (from == "deci - d - 10^-1") num1 *= Math.pow(10, -1);
+	else if (from == "centi - c - 10^-2") num1 *= Math.pow(10, -2);
+	else if (from == "milli - m - 10^-3") num1 *= Math.pow(10, -3);
+	else if (from == "micro - µ - 10^-6") num1 *= Math.pow(10, -6);
+	else if (from == "nano - n - 10^-9") num1 *= Math.pow(10, -9);
+	else if (from == "pico - p - 10^-12") num1 *= Math.pow(10, -12);
+	else if (from == "femto - f - 10^-15") num1 *= Math.pow(10, -15);
+	else if (from == "atto - a - 10^-18") num1 *= Math.pow(10, -18);
+	if (to == "exa - E - 10^18") num1 *= Math.pow(10, -18);
+	else if (to == "peta - P - 10^15") num1 *= Math.pow(10, -15);
+	else if (to == "tetra - T - 10^12") num1 *= Math.pow(10, -12);
+	else if (to == "giga - G - 10^9") num1 *= Math.pow(10, -9);
+	else if (to == "mega - M - 10^6") num1 *= Math.pow(10, -6);
+	else if (to == "kilo - k - 10^3") num1 *= Math.pow(10, -3);
+	else if (to == "hecto - h - 10^2") num1 *= Math.pow(10, -2);
+	else if (to == "deka - da - 10^1") num1 *= Math.pow(10, -1);
+	else if (to == "deci - d - 10^-1") num1 *= Math.pow(10, 1);
+	else if (to == "centi - c - 10^-2") num1 *= Math.pow(10, 2);
+	else if (to == "milli - m - 10^-3") num1 *= Math.pow(10, 3);
+	else if (to == "micro - µ - 10^-6") num1 *= Math.pow(10, 6);
+	else if (to == "nano - n - 10^-9") num1 *= Math.pow(10, 9);
+	else if (to == "pico - p - 10^-12") num1 *= Math.pow(10, 12);
+	else if (to == "femto - f - 10^-15") num1 *= Math.pow(10, 15);
+	else if (to == "atto - a - 10^-18") num1 *= Math.pow(10, 18);
+	var howMany = 0;
+	var theNum = num1 + "";
+	if (dot.test(theNum)) {
+		var parts = theNum.split(".");
+		var count = 0;
+		for (var a = 0; a < parts[1].length; a ++) {
+			if (parts[1][a] == "0" || parts[1][a] == "9") count ++;
+		}
+		if (parts[1].length >= 14 - parts[0].length && count >= parts[1].length / 3) {
+			parts[1] = "1" + parts[1];
+			parts[1] = parts[1] - 0;
+			parts[1] = Math.round(parts[1] / 1000);
+			parts[1] = parts[1].toString().split("");
+			parts[1].shift();
+			parts[1] = parts[1].toString().replace(/\,/g, "");
+			num1 = parts[0] + "." + parts[1];
+			num1 = num1 - 0;
+		}
+	}
+	preAns = num1;
+	out.innerHTML += num1 + " " + to.split(" ")[0].toString() + "<br>";
+	overConvert = false;
+	hideConvert();
+}
+
+function getNotation() {
+	var out = document.getElementById("output");
+	var num = solve();
+	preAns = num;
+	var num1 = num + "";
+	if (!dot.test(num1)) num1 += ".0";
+	var ch = num1.toString().split(".");
+	var p1 = [];
+	if (ch[0].length > 1) p1 = ch[0].split("");
+	else {
+		p1[0] = ch[0];
+	}
+	var p2 = ch[1].split("");
+	if (p1[0] == "0") {
+		var when = 0;
+		for (var a = 0; a < p2.length && when == 0; a ++) {
+			if (p2[a] != "0") when = a + 1;
+		}
+		var end = num * Math.pow(10, when);
+		out.innerHTML += num + " --> " + end + " * 10<sup>-" + when + "</sup><br>";
+	}
+	else {
+		var when = -1 * (p1.length - 1);
+		p1.reverse();
+		var end = num * Math.pow(10, when);
+		out.innerHTML += num + " --> " + end + " * 10<sup>" + when * -1 + "</sup><br>";
+	}
+}
+
+function showHelp() {
+	window.scrollTo(0,0);
+	overConvert = true;
+	var out = document.getElementById("converter");
+	out.style.left = "5%";
+	out.innerHTML = "<br>Study Helps<br><br>";
+	out.innerHTML += "<span onClick='formulasHelp();' class='sp'>Formulas</span> ";
+	out.innerHTML += "<span onClick='multiplicationHelp();' class='sp'>Multiplication Table </span><br><br>";
+	out.innerHTML += "<span onClick='exponentHelp();' class='sp'>Exponent Table</span> ";
+	out.innerHTML += "<span onClick='radicalHelp();' class='sp'>Radicals</span><br><br>";
+	out.innerHTML += "<span onClick='constantHelp();' class='sp'>Constants</span> ";
+	out.innerHTML += "<span onClick='' class='sp'></span> ";
+}
+
+function constantHelp() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Constants<br><br>";
+	print += "Pi:<br>" + Math.PI + "<br><br>";
+	print += "Gravity:<br>9.80665 m/s<sup>2</sup><br><br>";
+	print += "";
+	print += "";
+	print += "";
+	print += "";
+	print += "";
+	print += "<br></div></center>";
+	out.innerHTML = print;
+}
+
+function formulasHelp() {
+	var out = document.getElementById("converter");
+	out.innerHTML = "Formulas<br><br>";
+	out.innerHTML += "<span onClick='graphFormulas();' class='sp'>Graphing Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='seriesFormulas();' class='sp'>Sequences and Series Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='trigFormulas();' class='sp'>Trigonometry Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='kinematicFormulas();' class='sp'>Kinematics Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='geoFormulas();' class='sp'>Geometric Formulas</span><br><br>";
+}
+
+function geoFormulas() {
+	var out = document.getElementById("converter");
+	out.innerHTML = "Geometric Formulas<br><br>";
+	out.innerHTML += "<span onClick='areaFormulas();' class='sp'>Area Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='volumeFormulas();' class='sp'>Volume Formulas</span><br><br>";
+	out.innerHTML += "<span onClick='perimeterFormulas();' class='sp'>Perimeter Formulas</span><br><br>";
+}
+
+function areaFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Area Formulas<br><br>";
+	print += "Square: s<sup>2</sup><br>s is a side length<br><br>";
+	print += "Rectangle: lw<br> l is the length<br>w is the width<br><br>";
+	print += "Triangle: 1/2 bh<br>b is the base length<br>h is the height<br><br>";
+	print += "Circle: πr<sup>2</sup><br>π is Pi<br>r is the radius<br><br>";
+	print += "Polygon: 1/2 nsh<br>n is the number of sides<br>s is a side length<br>h is the height from a side to the middle of the polygon<br><br>";
+	print += "Cube:6 s<sup>2</sup><br>s is a side length<br><br>";
+	print += "Rectangular Prism: 2lw+2lh+2wh<br>l is the length<br>w is the width<br>h is the height<br><br>";
+	print += "Pyramid: 1/2 nsh + 1/2 nsb<br>n is the number of sides the pyramid has<br>s is the side length<br>h is the height of a triangle face<br>b is the length from a side to the middle of the pyramid's base<br><br>";
+	print += "Sphere: 4πr<sup>2</sup><br>π is Pi<br>r is the radius<br><br>";
+	print += "Cone: πrs + πr<sup>2</sup><br>r is the radius<br>s is the side length";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function volumeFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Volume Formulas<br><br>";
+	print += "Cube: s<sup>3</sup><br>s is a side length<br><br>";
+	print += "Rectangular Prism: lwh<br>l is the length<br>w is the width<br>h is the height<br><br>";
+	print += "Sphere: 4/3 πr<sup>3</sup><br>r is the radius<br><br>";
+	print += "Cylinder: πr<sup>2</sup>h<br>r is the radius<br>h is the height<br><br>";
+	print += "Cone: 1/3 πr<sup>2</sup>h<br>r is the radius<br>h is the height<br><br>";
+	print += "Pyramid: 1/3 A<sub>b</sub>h<br>A<sub>b</sub> is the area of the base<br>h is the height";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function perimeterFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Perimeter Formulas<br><br>";
+	print += "Square: 4s<br>s is a side length<br><br>";
+	print += "Rectangle: 2l + 2w<br>l is the length<br>w is the width<br><br>";
+	print += "Isosolese Triangle: 2s + b<br>s is a side length<br>b is the base length<br><br>";
+	print += "Circle: πd OR 2πr<br>d is the diameter<br>r is the radius<br><br>";
+	print += "Polygon: ns<br>n is the number of sides<br>s is a side length";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function kinematicFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Kinematics Formulas<br><br>";
+	print += "Distance:<br>d = " + formatDiv("v<sub>f</sub><sup>2</sup> - v<sub>i</sub><sup>2</sup>","2 a") +"<br>d = v<sub>f</sub>t - 1/2 at<sup>2</sup><br>d is change in distance<br>v<sub>f</sub> is final velocity<br>v<sub>i</sub> is initial velocity<br>a is acceleration<br>t is time<br><br>";
+	print += "Time:<br>t = " + formatDiv("v<sub>f</sub> - v<sub>i</sub>", "a") + "<br>t = √ 2d/a<br>t is time<br>v<sub>f</sub> is final velocity<br>v<sub>i</sub> is initial velocity<br>a is acceleration<br>d is distance<br><br>";
+	print += "Speed:<br>v = d / t<br>v<sub>f</sub><sup>2</sup> = v<sub>i</sub><sup>2</sup> + 2 ad<br>v<sub>f</sub> = v<sub>i</sub> + at<br>v is speed<br>d is distance<br>t is time<br>a is acceleration<br>v<sub>f</sub> is final speed<br>v<sub>i</sub> is initial speed<br><br>";
+	print += "Velocity:<br>" + arrow("v") + " = " + arrow("d") + " / t<br>" + arrow("v") + " is velocity<br>" + arrow("d") + " is displacement<br> t is time<br><br><br>";
+	print += "Acceleration:<br>" + arrow("a") + " = " + arrow("v") + " / t<br>a = " + formatDiv("v<sub>f</sub> - v<sub>i</sub>", "t") + "<br>a = " + formatDiv("v<sub>f</sub><sup>2</sup> - v<sub>i</sub><sup>2</sup>", "2 d") + "<br>" + arrow("a") + " is acceleration<br>" + arrow("v") + " is velocity<br>t is time<br><br>";
+	print += "";
+	print += "";
+	print += "";
+	print += "Efficiency:<br>%efficiency = output / input * 100%<br><br>";
+	print += "";
+	print += "";
+	print += "Energy:<br><br>";
+	print += "Potential Energy:<br>E<sub>p</sub> = mgh<br>E<sub>p</sub> is potential energy (Joules)<br>m is mass (kilograms)<br>g is gravity (9.81 m/s<sup>2</sup>)<br>h is height (meters)<br><br>";
+	print += "Kinetic Energy:<br>E<sub>k</sub> = 1/2 mv<sup>2</sup><br>E<sub>k</sub> is kinetic energy (Joules)<br>m is mass (kilograms)<br>v is speed (m/s)<br><br>";
+	print += "Mechanical Energy:<br>E<sub>m</sub> = E<sub>k</sub> + E<sub>p</sub><br>E<sub>m</sub> is mechanical energy<br>E<sub>k</sub> is kinetic energy<br>E<sub>p</sub> is potential energy<br><br>";
+	print += "Force<br>F = ma<br>F is Force (Newtons)<br>m is mass (kilograms)<br>a is acceleration (meters per second)<br><br>";
+	print += "Work:<br>W = Fd<br>W is work (Joules)<br>F is force (Newtons)<br>d is distance (meters)<br><br>";
+	print += "";
+	print += "";
+	print += "";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function graphFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Graphing Formulas<br><br>";
+	print += "Linear Equation:<br>y = mx + b<br>The 'y' and 'x' are the coordinate variables, the 'm' is the slope, and the 'b' is the y intercept.<br>This type of graph creates a straight line.<br><br>";
+	print += "Quadratic Equation:<br>General Form: y = ax<sup>2</sup> + bx + c<br>Vertex Form: y = a(x-p)<sup>2</sup> + q<br>'a' determines the steepness of the parabola and if it is positive, the arch opens up and vice versa. 'x' and 'y' are the coordinate variables. 'c' is the y intercept. 'p' is the x coordinate of the parabola's vertex, while 'q' is the y coordinate.<br>This graph creates a curved line.";
+	print += "";
+	print += "";
+	print += "";
+	print += "";
+	print += "";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function seriesFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Sequences and Series Formulas<br><br>";
+	print += "Arithmetic Sequences:<br><br>";
+	print += "General Term:<br>t<sub>n</sub> = a + (n-1)d<br>'t<sub>n</sub>' is the value of term 'n'. 'a' is the first term of the sequence. 'd' is the common difference between terms.<br><br>";
+	print += "Sum:<br>S<sub>n</sub> = n/2 (2a + (n-1)d)<br>S<sub>n</sub> = n/2 (a + t<sub>n</sub>)<br>'S<sub>n</sub>' is the value of the sum of the sequence up to the <i>n</i><sup>th</sup> term.<br><br><br>";
+	print += "Geometric Series:<br><br>";
+	print += "General Term:<br>t<sub>n</sub> = ar<sup>n-1</sup><br>'r' is the common ratio between terms.<br><br>";
+	print += "Sum:<br>S<sub>n</sub> = (a (r<sup>n</sup> - 1)) / (r - 1)<br>S<sub>n</sub> = (rt<sub>n</sub> - a) / (r - 1)<br><br>";
+	print += "Infinite Sum:<br>S<sub>∞</sub> = a / (1 - r) , -1 < r < 1<br>'S<sub>∞</sub>' is the sum of a series with an infinite number of terms.<br><br>";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function trigFormulas() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Trigonometry Formulas<br><br>";
+	print += "Angles are labeled with an uppercase letter. Sides are labeled with the lowercase letter of the angle it is opposite from.<br><br>";
+	print += "Pythagorus (right triangles only):<br>a<sup>2</sup> + b<sup>2</sup> = c<sup>2</sup><br><br>";
+	print += "Sin Law:<br>a / Sin A = b / Sin B = c / Sin C<br>This can only be used when you have SSA or AAS<br><br>";
+	print += "Cosine Law:<br>a<sup>2</sup> = b<sup>2</sup> + c<sup>2</sup> - 2bc(Sin A)<br>This can only be used when you have any two sides and an angle, SAS, or all three sides.<br><br>";
+	print += "Degrees and Radians:<br>One degree equals PI/180 radians. One radian equals 180/PI degrees.<br><br>";
+	print += "Trigonometry Ratios:<br>Sine equals the opposite side over the hypotenuse, Cosine equals the adjacent side over the hypotenuse, Tangent equals the opposite side of over the adjacent side.<br><br>";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function multiplicationHelp() {
+	var num1 = solve(prompt("What is the minimum number for the table?", ""));
+	var num2 = solve(prompt("What is the maximum number for the table?", ""));
+	var out = document.getElementById("converter");
+	var print = "<center><div class='fram'><table class='tbl'><tr><td>X</td>";
+	for (var a = num1; a <= num2; a ++) {
+		print += "<td>" + a + "</td>";
+	}
+	print += "</tr>";
+	for (var b = num1; b <= num2; b ++) {
+		print += "<tr><td>" + b + "</td>";
+		for (var c = num1; c <= num2; c ++) {
+			print += "<td>" + c * b + "</td>";
+		}
+		print += "</tr>";
+	}
+	print += "</table><br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function exponentHelp() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Exponent Table<table class='tbl'>";
+	print += "<tr><td>X</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td></tr>";
+	print += "<tr><td>2</td><td>4</td><td>8</td><td>16</td><td>32</td><td>64</td></tr>";
+	print += "<tr><td>3</td><td>9</td><td>27</td><td>81</td><td>243</td><td>729</td></tr>";
+	print += "<tr><td>4</td><td>16</td><td>64</td><td>256</td><td>1024</td></tr>";
+	print += "<tr><td>5</td><td>25</td><td>125</td><td>625</td><td>3125</td></tr>";
+	print += "<tr><td>6</td><td>36</td><td>216</td><td>1296</td><td>7776</td></tr>";
+	print += "<tr><td>7</td><td>49</td><td>343</td><td>2401</td><td>16807</td></tr>";
+	print += "<tr><td>8</td><td>64</td><td>512</td><td>4096</td></tr>";
+	print += "<tr><td>9</td><td>81</td><td>729</td><td>6561</td></tr>";
+	print += "<tr><td>10</td><td>100</td></tr>";
+	print += "<tr><td>11</td><td>121</td></tr>";
+	print += "<tr><td>12</td><td>144</td></tr>";
+	print += "<tr><td>13</td><td>169</td></tr>";
+	print += "<tr><td>14</td><td>196</td></tr>";
+	print += "<tr><td>15</td><td>225</td></tr>";
+	print += "<tr><td>16</td><td>256</td></tr>";
+	print += "<tr><td>17</td><td>289</td></tr>";
+	print += "<tr><td>18</td><td>324</td></tr>";
+	print += "<tr><td>19</td><td>361</td></tr>";
+	print += "<tr><td>20</td><td>400</td></tr>";
+	print += "</table><br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function radicalHelp() {
+	var out = document.getElementById("converter");
+	var print = "";
+	print += "<center><div class='fram'>Radicals<br><br>";
+	print += "Restrictions: The radicand must be positive when the index is an even number.<br><br>";
+	print += "Mixed Radicals to Entire Radicals:<br>a√x -- You must square 'a', then multiply it by 'x' to convert it to an entire radical. 3√5 would become √45 (3 * 3 * 5 = 45).<br><br>";
+	print += "Entire Radicals to Mixed Radicals:<br>√y -- You must find expand 'y' into prime numbers (b * b * b * b). Then see which numbers are repeated in groups of the index number. These groups are then taken out of the radical and then you multiply one number from each group together to get 'a'. The leftover numbers are multiplied back together to finish the mixed radical. √98 --> √(<b>7 * 7</b> * 2) --> 7√2.<br><br>";
+	print += "Multiplying and Dividing Radicals:<br>You can multiply/divide the radicands together as long as the index is the same.<br><br>";
+	print += "Adding and Subtracting Radicals:<br>You can add/subtract the 'a' together if the radical's radicand and index are the same.<br><br>";
+	print += "<br><br></div></center>";
+	out.innerHTML = print;
+}
+
+function arrow(ch) {
+	var pr = "<span>" + ch + "<span style='position:relative; left:-0.6em;'><sup>→</sup></span></span>";
+	return pr;
+}
+
+function formatDiv(top, bottom) {
+	var t = top;
+	var b = bottom;
+	var noHtml = /<\/*\w+>/gi;
+	var total = Math.max(top.replace(noHtml, "").length, bottom.replace(noHtml, "").length)/1.3;
+	top = t;
+	bottom = b;
+	var pr = "<span style='font-size:0.6em; line-height:2.5em;'><span style='position:relative; top:-0.7em;'>" + top + "</span>";
+	pr += "<span style='position:relative; left:-" + (total/2.5) + "em;'>";
+	for (var a = 1; a < total; a ++) {
+		pr += "-";
+	}
+	pr += "</span>";
+	pr += "<span style='position:relative; top:0.7em; left:-" + (total/1.65) + "em;'>" + bottom + "</span>";
+	pr += "</span>";
+	return pr;
+}
+
+</script>
+<style>
+.tbl, td {
+	background-color:transparent;
+	border:2px solid black;
+	color:black;
+	text-align:center;
+	font-size:18px;
+}
+.fram {
+	overflow:auto;
+	padding:10px;
+	background-color:transparent;
+	border:2px solid black;
+	color:black;
+	width:90%;
+	height:210px;
+	text-align:left;
+}
+body {
+	text-align:center;
+	color:white;
+	padding:0;
+	margin:0;
+	background-color:orange;
+	min-height:327px;
+}
+.big {
+	color:black;
+	font-size:20px;
+	border:1px solid black;
+	max-width:100%;
+}
+.sp {
+	background-color:#D0D0D0;
+	border:1px solid black;
+	padding:5px;
+}
+#output {
+	color:black;
+	font-size:25px;
+	background-color:skyblue;
+}
+#converter {
+	font-size:20px;
+	background-color:lightgreen;
+	color:black;
+	border:2px solid black;
+	position:fixed;
+	top:10%;
+	left:-100%;
+	height:80%;
+	width:85%;
+	padding:10px;
+}
+select, input, button {font-size:20px; max-width:27%; color:black;}
+select {max-width:32%;}
+</style>
+</head>
+<body onLoad="start();" onClick="hideConvert();">
+<div id="output">Output:<br></div>
+<button class="big" onClick="var solu = solve(); document.getElementById('output').innerHTML += inp + ' = ' + solu + '<br>'; preAns = solu;">Solve simple problem</button> 
+<button class="big" onClick="document.getElementById('output').innerHTML='Output:<br>'">CLEAR</button><br>
+<button onClick="showSequences();" class="big">Arithmetic Sequences</button>
+<button onClick="showSeries();" class="big">Geometric Series</button>
+<button onClick="showTrig();" class="big">Trigonometry</button>
+<button onClick="showEquations();" class="big">Equations</button>
+<button onClick="showVol();" class="big">Volume</button>
+<button onClick="showArea();" class="big">Area</button>
+<button onClick="showFormulae();" class="big">Formulas</button>
+<button onClick="showConvert();" class="big">Unit Conversions</button> 
+<button onClick="toFraction();" class="big">To Fraction</button> 
+<button onClick="getNotation();" class="big">To Scientific Notation</button> 
+<button onClick="showHelp();" class="big">Study Helps</button>
+
+<br>
+<div id="btns"></div>
+<div id="converter" onMouseOver="overConvert=true;" onMouseOut="overConvert=false;">hi</div>
+<br>
+<button style="max-width:100%; width:80%; color:black; font-size:20px; letter-spacing:4px; font-weight:bold;" onClick="otherAlert();">Special commands</button>
+<br>
+</body>
+</html>

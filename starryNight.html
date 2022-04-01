@@ -1,0 +1,99 @@
+<html>
+<head>
+<script src="../Functions/drawStar1.js"> </script>
+<script>
+var cvs1;
+var cvs;
+var p = {x:150, y:150, xsp:9, ysp:-5};
+var wH;
+var wW;
+
+function start() {
+wH = window.innerHeight;
+wW = window.innerWidth;
+
+cvs1 = document.getElementById("cvs1");
+cvs1.width = wW;
+cvs1.height = wH;
+cvs1.style.top = "0";
+cvs1.style.left = "0";
+cvs = cvs1.getContext("2d");
+drawNight();
+
+cvs1 = document.getElementById("cvs2");
+cvs1.width = wW;
+cvs1.height = wH;
+cvs1.style.top = "0";
+cvs1.style.left = wW + "px";
+cvs = cvs1.getContext("2d");
+drawNight();
+
+cvs1 = document.getElementById("cvs3");
+cvs1.width = wW;
+cvs1.height = wH;
+cvs1.style.top = wH + "px";
+cvs1.style.left = wW + "px";
+cvs = cvs1.getContext("2d");
+drawNight();
+
+cvs1 = document.getElementById("cvs4");
+cvs1.width = wW;
+cvs1.height = wH;
+cvs1.style.top = wH + "px";
+cvs1.style.left = "0";
+cvs = cvs1.getContext("2d");
+drawNight();
+
+setInterval(move,1);
+}
+
+function move() {
+var cvss = [document.getElementById("cvs1"), document.getElementById("cvs2"), document.getElementById("cvs3"), document.getElementById("cvs4")];
+for (var a = 0; a < cvss.length; a ++) {
+var top = cvss[a].offsetTop + p.ysp;
+var left = cvss[a].offsetLeft + p.xsp;
+if (p.xsp >= 0 && left >= wW) {
+left -= wW*2;
+}
+else if (p.xsp < 0 && left <= -wW) {
+left += wW*2;
+}
+if (p.ysp >= 0 && top >= wH) {
+top -= wH*2;
+}
+else if (p.ysp < 0 && top <= -wH) {
+top += wH*2;
+}
+cvss[a].style.top = top + "px";
+cvss[a].style.left = left + "px";
+}
+
+}
+
+function drawNight() {
+cvs.strokeStyle = "transparent";
+cvs.fillStyle = "white";
+for (var a = 0; a < Math.round(Math.min(wW/15,wH/15)); a ++) {
+var rad = Math.round(Math.random()*2+4);
+var xcoor = Math.round(Math.random()*(cvs1.offsetWidth-rad*3)+rad*1.5);
+var ycoor = Math.round(Math.random()*(cvs1.offsetHeight-rad*3)+rad*1.5);
+var pts = Math.round(Math.random()*2+5);
+drawStar(xcoor, ycoor, rad, pts, 0.5, 0, cvs);
+}
+}
+
+</script>
+<style>
+body { margin:0; overflow:hidden;}
+canvas { position:absolute; background:black; }
+</style>
+</head>
+<body onLoad="start();">
+<canvas id="cvs1"> </canvas>
+<canvas id="cvs2"> </canvas>
+<canvas id="cvs3"> </canvas>
+<canvas id="cvs4"> </canvas>
+
+
+</body>
+</html>

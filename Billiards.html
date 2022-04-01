@@ -1,0 +1,500 @@
+<html>
+<head>
+<title></title>
+<script>
+var cvs1;
+var cvs;
+var cvs2;
+var cvs21;
+var msg;
+var placing = true;
+var aiming = false;
+var firing = false;
+var powerUp = true;
+var power = 0;
+var stopped = true;
+var shootCount = 0;
+var shootInt;
+var ms = {x:160, y:0, angle:0};
+var lines = [{x1:104,y1:61,x2:114,y2:65}, {x1:114,y1:65,x2:206,y2:65}, {x1:206,y1:65,x2:216,y2:61}, {x1:104,y1:295,x2:114,y2:291}, {x1:114,y1:291,x2:206,y2:291}, {x1:206,y1:291,x2:216,y2:295}, {x1:95,y1:70,x2:99,y2:80}, {x1:99,y1:80,x2:99,y2:159}, {x1:99,y1:159,x2:95,y2:169}, {x1:95,y1:181,x2:99,y2:191}, {x1:99,y1:191,x2:99,y2:276}, {x1:99,y1:276,x2:95,y2:286}, {x1:225,y1:70,x2:221,y2:80}, {x1:221,y1:80,x2:221,y2:159}, {x1:221,y1:159,x2:225,y2:169}, {x1:225,y1:181,x2:221,y2:191}, {x1:221,y1:191,x2:221,y2:276}, {x1:221,y1:276,x2:225,y2:286}];
+
+var balls = [{x:170,y:240,r:4,vx:0,vy:0,m:0.1,color:"white",solid:true}, {x:160,y:120,r:4,vx:0,vy:0,m:0.1,color:"rgb(220,220,0)",solid:true}, {x:165,y:112,r:4,vx:0,vy:0,m:0.1,color:"rgb(230,230,0)",solid:false}, {x:155,y:112,r:4,vx:0,vy:0,m:0.1,color:"blue",solid:false}, {x:170,y:104,r:4,vx:0,vy:0,m:0.1,color:"red",solid:false}, {x:160,y:104,r:4,vx:0,vy:0,m:0.1,color:"black",solid:true}, {x:150,y:104,r:4,vx:0,vy:0,m:0.1,color:"blue",solid:true}, {x:175,y:96,r:4,vx:0,vy:0,m:0.1,color:"red",solid:true}, {x:165,y:96,r:4,vx:0,vy:0,m:0.1,color:"orange",solid:false}, {x:155,y:96,r:4,vx:0,vy:0,m:0.1,color:"saddlebrown",solid:true}, {x:145,y:96,r:4,vx:0,vy:0,m:0.1,color:"saddlebrown",solid:false}, {x:180,y:88,r:4,vx:0,vy:0,m:0.1,color:"rgb(0,255,0)",solid:false}, {x:170,y:88,r:4,vx:0,vy:0,m:0.1,color:"rgb(0,255,0)",solid:true}, {x:160,y:88,r:4,vx:0,vy:0,m:0.1,color:"orange",solid:true}, {x:150,y:88,r:4,vx:0,vy:0,m:0.1,color:"purple",solid:false}, {x:140,y:88,r:4,vx:0,vy:0,m:0.1,color:"purple",solid:true}];
+
+
+function start() {
+cvs1 = document.getElementById("cvs");
+cvs = cvs1.getContext("2d");
+cvs21 = document.getElementById("cvs2");
+cvs2 = cvs21.getContext("2d");
+cvs1.style.top = window.innerHeight/2 - cvs1.height/2;
+cvs1.style.left = window.innerWidth/2 - cvs1.width/2;
+cvs21.style.top = window.innerHeight/2 - cvs21.height/2;
+cvs21.style.left = window.innerWidth/2 - cvs21.width/2;
+msg = document.getElementById("msg");
+drawTable();
+drawBalls();
+setInterval(game, 10);
+document.addEventListener('mousemove', msMove, false);
+document.addEventListener('mousedown', msDown, false);
+document.addEventListener('mouseup', msUp, false);
+}
+
+function msDown(e) {
+	if (aiming) {
+		shootInt = setInterval(shoot, 10);
+	}
+}
+
+function shoot() {
+	if (powerUp) power = Math.min(100, power + 1);
+	else power = Math.max(0, power - 1);
+	if (power == 100) powerUp = false;
+	else if (power == 0) powerUp = true;
+}
+
+function msMove(e) {
+	ms.x = e.pageX - cvs1.offsetLeft;
+	ms.y = e.pageY - cvs1.offsetTop;
+}
+
+function msUp(e) {
+	if (placing && ms.x > 105 && ms.x < 215) {
+		placing = false;
+		aiming = true;
+	}
+	else if (aiming) {
+		firing = true;
+		aiming = false;
+		clearInterval(shootInt);
+		shootCount = 0;
+		setTimeout(hitBall, 100);
+	}
+}
+
+function hitBall() {
+	var calcs = getAngle(balls[0].x, balls[0].y, ms.x, ms.y);
+	balls[0].vx = calcs.vx * power / 30;
+	balls[0].vy = calcs.vy * power / 30;
+	firing = false;
+	power = 0;
+	powerUp = true;
+}
+
+function drawCue() {
+	if (aiming) {
+		cvs.save();
+		cvs.lineWidth = 1.5;
+		cvs.shadowOffsetX = 0;
+		cvs.shadowOffsetY = 0;
+		cvs.shadowBlur = 4;
+		cvs.shadowColor = "rgba(255,0,0," + power/80 +")";
+		cvs.translate(balls[0].x, balls[0].y);
+		ms.angle = getAngle(ms.x, ms.y, balls[0].x, balls[0].y).angle;
+		cvs.rotate(-ms.angle);
+		cvs.fillStyle = "rgba(255,0,0," + power/80 + ")";
+		cvs.beginPath();
+		cvs.moveTo(120, -6);
+		cvs.lineTo(20, -3);
+		cvs.lineTo(20, 3);
+		cvs.lineTo(120, 6);
+		cvs.fill();
+		cvs.closePath();
+		cvs.strokeStyle = "black";
+		cvs.fillStyle = "saddlebrown";
+		cvs.beginPath();
+		cvs.moveTo(120, -3);
+		cvs.lineTo(20, -1.5);
+		cvs.lineTo(20, 1.5);
+		cvs.lineTo(120, 3);
+		cvs.arc(120,0,3,Math.PI/2,-Math.PI/2,true);
+		cvs.fill();
+		cvs.fillStyle = "white";
+		cvs.fillRect(20,-1.5,5,3);
+		cvs.stroke();
+		cvs.closePath();
+		cvs.rotate(ms.angle);
+		cvs.translate(-balls[0].x, -balls[0].y);
+		cvs.restore();
+	}
+	else if (firing) {
+		shootCount ++;
+		var dif = Math.round(shootCount * 2);
+		cvs.save();
+		cvs.lineWidth = 1.5;
+		cvs.translate(balls[0].x, balls[0].y);
+		cvs.rotate(-ms.angle);
+		cvs.strokeStyle = "black";
+		cvs.fillStyle = "saddlebrown";
+		cvs.beginPath();
+		cvs.moveTo(120 - dif, -3);
+		cvs.lineTo(20 - dif, -1.5);
+		cvs.lineTo(20 - dif, 1.5);
+		cvs.lineTo(120 - dif, 3);
+		cvs.arc(120-dif,0,3,Math.PI/2,-Math.PI/2,true);
+		cvs.fill();
+		cvs.fillStyle = "white";
+		cvs.fillRect(20-dif,-1.5,5,3);
+		cvs.stroke();
+		cvs.closePath();
+		cvs.rotate(ms.angle);
+		cvs.translate(-balls[0].x, -balls[0].y);
+		cvs.restore();
+	}
+}
+
+function game() {
+	if (balls[0].r < 0.05) {
+		balls[0].r = 4;
+		balls[0].vx = 0;
+		balls[0].vy = 0;
+		balls[0].y = 240;
+		balls[0].x = 170;
+		placing = true;
+		firing = false;
+		aiming = false;
+		alert("Foul!");
+	}
+	if (placing) {
+		if (ms.x > 105 && ms.x < 215) balls[0].x = ms.x;
+	}
+	
+	move();
+	if (stopped && !firing && !placing) aiming = true;
+	if (balls[0].r < 4) {
+		aiming = false;
+		balls[0].r *= 0.9;
+	}
+	drawCue();
+}
+
+function move() {
+cvs.clearRect(0,0,cvs1.width,cvs1.height);
+for (var a = 0; a < balls.length; a ++) {
+for (var b = 0; b < balls.length; b ++) {
+var newV = getBallCollision(balls[a], balls[b]);
+if (a != b && newV) {
+balls[a].vx = newV.vx1;
+balls[a].vy = newV.vy1;
+balls[b].vx = newV.vx2;
+balls[b].vy = newV.vy2;
+var hitting = true;
+while(hitting) {
+balls[a].x += balls[a].vx/20;
+balls[a].y += balls[a].vy/20;
+balls[b].x += balls[b].vx/20;
+balls[b].y += balls[b].vy/20;
+hitting = getBallCollision(balls[a], balls[b]);
+}
+}
+}
+}
+for (var a = 0; a < balls.length; a ++) {
+for (var b = 0; b < lines.length; b ++) {
+var atLine = getBallOnLine(balls[a], lines[b]);
+var line = {x:atLine.x, y:atLine.y, r:0.05, m:1000, vx:0, vy:0};
+var newV = getBallCollision(balls[a], line);
+if (newV) {
+balls[a].vx = newV.vx1;
+balls[a].vy = newV.vy1;
+var hitting = true;
+while(hitting) {
+balls[a].x += balls[a].vx/10;
+balls[a].y += balls[a].vy/10;
+hitting = getBallCollision(balls[a], line);
+}
+}
+}
+balls[a].x += balls[a].vx;
+balls[a].y += balls[a].vy;
+balls[a].vx *= 0.993;
+balls[a].vy *= 0.993;
+if (Math.abs(balls[a].vx) + Math.abs(balls[a].vy) < 0.05) {
+balls[a].vx = 0;
+balls[a].vy = 0;
+}
+}
+for (var a = 0; a < balls.length; a ++) {
+if (balls[a].y < 63 || balls[a].x > 224 || balls[a].x < 97 || balls[a].y > 293) {
+balls[a].vx *= 0.4;
+balls[a].vy *= 0.4;
+balls[a].r *= 0.9;
+}
+}
+var noMovement = true;
+for (var a = 0; a < balls.length; a ++) {
+	if (Math.abs(balls[a].vx) + Math.abs(balls[a].vy) != 0) noMovement = false;
+}
+stopped = noMovement;
+drawBalls();
+}
+
+function drawBalls() {
+for (var a = 0; a < balls.length; a ++) {
+cvs.fillStyle = "white";
+if (balls[a].solid) cvs.fillStyle = balls[a].color;
+cvs.lineWidth = 0.5;
+cvs.strokeStyle = "black";
+cvs.beginPath();
+cvs.arc(balls[a].x, balls[a].y, balls[a].r, 0, Math.PI*2, true);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.lineWidth = balls[a].r*0.6;
+cvs.lineCap = "round";
+if (!balls[a].solid) {
+cvs.strokeStyle = balls[a].color;
+cvs.beginPath();
+cvs.moveTo(balls[a].x - balls[a].r/2, balls[a].y);
+cvs.lineTo(balls[a].x + balls[a].r/2, balls[a].y);
+cvs.stroke();
+cvs.closePath();
+}
+}
+}
+
+
+
+
+
+
+function drawTable() {
+cvs2.fillStyle = "saddlebrown";
+cvs2.strokeStyle = "black";
+cvs2.lineWidth = 1.5;
+roundRect({x:160, y:178, w:160, h:264, r:10}, cvs2);
+cvs2.fillStyle = "green";
+cvs2.lineWidth = 1;
+cvs2.fillRect(95, 61, 130, 234);
+cvs2.strokeRect(95, 61, 130, 234);
+cvs2.beginPath();
+cvs2.moveTo(95,236);
+cvs2.lineTo(225,236);
+cvs2.arc(160,236,6,0,Math.PI,true);
+cvs2.stroke();
+cvs2.closePath();
+cvs2.fillStyle = "darkgreen";
+cvs2.beginPath();
+cvs2.moveTo(104, 61);
+cvs2.lineTo(114, 65);
+cvs2.lineTo(206, 65);
+cvs2.lineTo(216, 61);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.moveTo(104, 295);
+cvs2.lineTo(114, 291);
+cvs2.lineTo(206, 291);
+cvs2.lineTo(216, 295);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.moveTo(95, 70);
+cvs2.lineTo(99, 80);
+cvs2.lineTo(99, 159);
+cvs2.lineTo(95, 169);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.moveTo(95, 181);
+cvs2.lineTo(99, 191);
+cvs2.lineTo(99, 276);
+cvs2.lineTo(95, 286);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.moveTo(225, 70);
+cvs2.lineTo(221, 80);
+cvs2.lineTo(221, 159);
+cvs2.lineTo(225, 169);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.moveTo(225, 181);
+cvs2.lineTo(221, 191);
+cvs2.lineTo(221, 276);
+cvs2.lineTo(225, 286);
+cvs2.stroke();
+cvs2.fill();
+cvs2.closePath();
+cvs2.fillStyle = "black";
+cvs2.beginPath();
+cvs2.arc(97, 63, 7, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.arc(223, 63, 7, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.arc(97, 293, 7, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.arc(223, 293, 7, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+
+cvs2.beginPath();
+cvs2.arc(93, 175, 5.5, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+cvs2.beginPath();
+cvs2.arc(227, 175, 5.5, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+}
+function roundRect(rect, myCanvas) {
+var x = rect.x;
+var y = rect.y;
+var w = rect.w;
+var h = rect.h;
+var r = rect.r;
+if (!myCanvas) {
+myCanvas = document.getElementsByTagName("canvas")[0].getContext("2d");
+}
+myCanvas.beginPath();
+myCanvas.moveTo(x - w / 2, y + h / 2 - r);
+myCanvas.lineTo(x - w / 2, y - h / 2 + r);
+myCanvas.arc(x - w / 2 + r, y - h / 2 + r, r, -Math.PI, -Math.PI/2, false);
+myCanvas.lineTo(x + w / 2 - r, y - h / 2);
+myCanvas.arc(x + w / 2 - r, y - h / 2 + r, r, -Math.PI / 2, 0, false);
+myCanvas.lineTo(x + w / 2, y + h / 2 - r);
+myCanvas.arc(x + w / 2 - r, y + h / 2 - r, r, 0, Math.PI / 2, false);
+myCanvas.lineTo(x - w / 2 + r, y + h / 2);
+myCanvas.arc(x - w / 2 + r, y + h / 2 - r, r, Math.PI / 2, Math.PI, false);
+myCanvas.fill();
+myCanvas.stroke();
+myCanvas.closePath();
+}
+function getBallOnLine(ball, line) {
+line.w = line.x1 - line.x2;
+line.h = line.y1 - line.y2;
+line.slope = (line.y1 - line.y2) / (line.x1 - line.x2);
+if (line.slope.toString() == "Infinity") line.slope = 1;
+if (line.slope.toString() == "-Infinity") line.slope = -1;
+var ballx = line.x1 - ball.x;
+var bally = line.y1 - ball.y;
+var yDist = (line.h - bally) - (line.h / line.w) * (line.w - ballx);
+var xDist = (line.w - ballx) - (line.w / line.h) * (line.h - bally);
+var dist = Math.min(Math.abs(Math.cos(Math.atan(line.h / line.w)) * yDist), Math.abs(Math.cos(Math.atan(line.w / line.h)) * xDist));
+var xOff = Math.sin(Math.atan(line.h / line.w)) * dist * Math.abs(xDist) / -xDist * Math.abs(line.slope) / line.slope;
+if (xOff.toString() == "NaN") xOff = 0;
+var yOff = Math.cos(Math.atan(line.h / line.w)) * dist * Math.abs(yDist) / -yDist;
+if (yOff.toString() == "NaN") yOff = 0;
+var lineX = ball.x + xOff;
+var lineY = ball.y + yOff;
+lineX = Math.max(lineX, Math.min(line.x1, line.x2));
+lineX = Math.min(lineX, Math.max(line.x1, line.x2));
+lineY = Math.max(lineY, Math.min(line.y1, line.y2));
+lineY = Math.min(lineY, Math.max(line.y1, line.y2));
+return { x:lineX, y:lineY };
+}
+function getBallCollision(ball1, ball2) {
+b1 = {x:0, y:0, r:0, vx:0, vy:0, m:0};
+b2 = {x:0, y:1, r:0, vx:0, vy:0, m:0};
+b1.x = ball1.x;
+b2.x = ball2.x;
+b1.y = ball1.y;
+b2.y = ball2.y;
+if (ball1.rad) b1.r = ball1.rad;
+else if (ball1.radius) b1.r = ball1.radius;
+else if (ball1.r) b1.r = ball1.r;
+if (ball2.rad) b2.r = ball2.rad;
+else if (ball2.radius) b2.r = ball2.radius;
+else if (ball2.r) b2.r = ball2.r;
+if (ball1.xSpeed) b1.vx = ball1.xSpeed;
+else if (ball1.xspeed) b1.vx = ball1.xspeed;
+else if (ball1.xSp) b1.vx = ball1.xSp;
+else if (ball1.xsp) b1.vx = ball1.xsp;
+else if (ball1.vx) b1.vx = ball1.vx;
+if (ball1.ySpeed) b1.vy = ball1.ySpeed;
+else if (ball1.yspeed) b1.vy = ball1.yspeed;
+else if (ball1.ySp) b1.vy = ball1.ySp;
+else if (ball1.ysp) b1.vy = ball1.ysp;
+else if (ball1.vy) b1.vy = ball1.vy;
+if (ball2.xSpeed) b2.vx = ball2.xSpeed;
+else if (ball2.xspeed) b2.vx = ball2.xspeed;
+else if (ball2.xSp) b2.vx = ball2.xSp;
+else if (ball2.xsp) b2.vx = ball2.xsp;
+else if (ball2.vx) b2.vx = ball2.vx;
+if (ball2.ySpeed) b2.vy = ball2.ySpeed;
+else if (ball2.yspeed) b2.vy = ball2.yspeed;
+else if (ball2.ySp) b2.vy = ball2.ySp;
+else if (ball2.ysp) b2.vy = ball2.ysp;
+else if (ball2.vy) b2.vy = ball2.vy;
+if (ball1.mass) b1.m = ball1.mass;
+else if (ball1.m) b1.m = ball1.m;
+if (ball2.mass) b2.m = ball2.mass;
+else if (ball2.m) b2.m = ball2.m;
+var dx = b1.x - b2.x;
+var dy = b1.y - b2.y;
+var dist = Math.sqrt(dx*dx + dy*dy);
+if (Math.abs(dy) + Math.abs(dx) != 0 && dist < b1.r + b2.r) {
+var colAng = Math.atan2(dy, dx);
+var sp1 = Math.sqrt(b1.vx*b1.vx + b1.vy*b1.vy);
+var sp2 = Math.sqrt(b2.vx*b2.vx + b2.vy*b2.vy);
+var dir1 = Math.atan2(b1.vy, b1.vx);
+var dir2 = Math.atan2(b2.vy, b2.vx);
+var vx1 = sp1 * Math.cos(dir1 - colAng);
+var vy1 = sp1 * Math.sin(dir1 - colAng);
+var vx2 = sp2 * Math.cos(dir2 - colAng);
+var vy2 = sp2 * Math.sin(dir2 - colAng);
+var fvx1 = ((b1.m - b2.m) * vx1 + (2 * b2.m) * vx2) / (b1.m + b2.m);
+var fvx2 = ((2 * b1.m) * vx1 + (b2.m - b1.m) * vx2) / (b1.m + b2.m);
+var fvy1 = vy1;
+var fvy2 = vy2;
+b1.vx = Math.cos(colAng) * fvx1 + Math.cos(colAng + Math.PI/2) * fvy1;
+b1.vy = Math.sin(colAng) * fvx1 + Math.sin(colAng + Math.PI/2) * fvy1;
+b2.vx = Math.cos(colAng) * fvx2 + Math.cos(colAng + Math.PI/2) * fvy2;
+b2.vy = Math.sin(colAng) * fvx2 + Math.sin(colAng + Math.PI/2) * fvy2;
+return { vx1:b1.vx, xSp1:b1.vx, xsp1:b1.vx, xSpeed1:b1.vx, xspeed1:b1.vx, vy1:b1.vy, ySp1:b1.vy, ysp1:b1.vy, ySpeed1:b1.vy, yspeed1:b1.vy, vx2:b2.vx, xSp2:b2.vx, xsp2:b2.vx, xSpeed2:b2.vx, xspeed2:b2.vx, vy2:b2.vy, ySp2:b2.vy, ysp2:b2.vy, ySpeed2:b2.vy, yspeed2:b2.vy }
+}
+else return false;
+}
+function getAngle(x, y, coordX, coordY) {
+var a = coordX - x;
+var o = y - coordY;
+var h = Math.sqrt(a*a + o*o);
+var ang = Math.asin(o / h);
+var ySpeed = -Math.asin(o / h);
+var xSpeed = Math.asin(a / h);
+if (o >= 0 && a < 0) ang = Math.PI - ang;
+else if (o < 0 && a < 0) ang = -Math.PI - ang;
+return { angle:ang, xSp:xSpeed, ySp:ySpeed, vx:xSpeed, vy:ySpeed, dist:h };
+}
+</script>
+<style>
+body {
+padding:0;
+margin:0;
+overflow:hidden;
+}
+canvas {
+position:absolute;
+top:0;
+left:0;
+}
+div#msg {
+position:absolute;
+bottom:100%;
+font-size:1.5em;
+line-height:1.2em;
+width:100%;
+border-bottom:1px solid black;
+background:rgb(0,255,0);
+}
+</style>
+</head>
+<body onLoad="start();">
+<div id="body">
+<canvas id="cvs2" width=320 height=356> </canvas>
+<canvas id="cvs" width=320 height=356> </canvas>
+</div>
+<div id="msg">hello</div>
+</body>
+</html>

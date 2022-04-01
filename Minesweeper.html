@@ -1,0 +1,151 @@
+<html>
+<meta name="viewport" content="width=device-width">
+<head>
+<title>Minesweeper</title>
+<script>
+var hed;
+var field;
+var squares = [];
+var mines = [];
+var ready = false;
+
+function newGame(lvl) {
+	hed = document.getElementById("out");
+	field = document.getElementById("field");
+	hed.innerHTML = "Loading . . .";
+	field.innerHTML = "";
+	squares = [];
+	mines = [];
+	ready = false;
+	if (lvl == 1) setTimeout("newField(10,6,11)",200);
+	else if (lvl == 2) setTimeout("newField(8,5,8)",200);
+	else if (lvl == 3) setTimeout("newField(6,4,6)",200);
+}
+
+function newField(sqX, sqY, bombs) {
+	var dist = Math.floor(240 / sqY);
+	var dist1 = Math.floor(400 / sqX);
+	if (dist1 < dist) dist = dist1;
+	for (var a = 0; a < sqX * sqY; a ++) {
+		squares.push(" ");
+	}
+	for (var b = 0; b < bombs; b ++) {
+		var c = Math.floor(Math.random() * squares.length);
+		if (squares[c] != "mine") squares.splice(c, 1, "mine");
+		else b --;
+	}
+	for (var d = 0; d < sqX; d ++) {
+		var part = [];
+		for (var f = 0; f < sqY; f ++) {
+			part.push(squares[f]);
+			squares.splice(f,1);
+		}
+		mines.push(part);
+	}
+	for (var g = 0; g < sqX; g ++) {
+		for (var h = 0; h < sqY; h ++) {
+			field.innerHTML += "<div class='sq' id='" + g + "," + h + "' style='width:" + dist + "px; height:" + dist + "px; top:" + ((240 - sqY * dist)/2 + h * dist + field.offsetTop) + "px; left:" + ((400 - sqX * dist)/2 + g * dist + field.offsetLeft) + "px;' onClick='getSquare(this);'> </div>";
+			hed.innerHTML = Math.round(field.getElementsByTagName("div").length / sqX / sqY * 100) + "% Loaded";
+		}
+	}
+	if (mines[sqX-1][sqY-1] == undefined) mines[sqX-1][sqY-1] = " ";
+	setTimeout("beginMessage(" + bombs + ")", 500);
+}
+
+function beginMessage(bom) {
+	hed.innerHTML = "Let\'s begin!";
+	ready = true;
+}
+
+function getSquare(box) {
+	var pos = [];
+	pos = box.id.split(",");
+	if (ready) {
+		if (mines[pos[0]][pos[1]] == "mine") {
+			box.style.backgroundColor = "black";
+			alert("BOOM! You lose!");
+			hed.innerHTML = "BOOM! You lose!";
+			ready = false;
+			endGame();
+		}
+		else {
+			findBombs(pos);
+			setTimeout("checkWin("+pos+")",1);
+		}
+	}
+}
+
+function findBombs(p) {
+	var count = 0;
+	var t = mines[0].length - 1;
+	var u = mines.length - 1;
+	p[0] -= 0;
+	p[1] -= 0;
+	if (p[0]<u && p[1]>0 && mines[p[0]+1][p[1]-1] == "mine") count ++;
+	if (p[0]>0 && p[1]>0 && mines[p[0]-1][p[1]-1] == "mine") count ++;
+	if (p[1]>0 && mines[p[0]][p[1]-1] == "mine") count ++;
+	if (p[0]<u && p[1]<t && mines[p[0]+1][p[1]+1] == "mine") count ++;
+	if (p[0]>0 && p[1]<t && mines[p[0]-1][p[1]+1] == "mine") count ++;
+	if (p[1]<t && mines[p[0]][p[1]+1] == "mine") count ++;
+	if (p[0]>0 && mines[p[0]-1][p[1]] == "mine") count ++;
+	if (p[0]<u && mines[p[0]+1][p[1]] == "mine") count ++;
+	document.getElementById(p[0] + "," + p[1]).innerHTML = count;
+}
+
+function endGame() {
+	for (var a = 0; a < mines.length; a ++) {
+		for (var b = 0; b < mines.length; b ++) {
+			if (mines[a][b] == "mine") document.getElementById(a + "," + b).style.backgroundColor = "black";
+		}
+	}
+}
+
+function checkWin(loc) {
+	var total = mines.length * mines[0].length;
+	var track = 0;
+	for (var a = 0; a < mines.length; a ++) {
+		for (var b = 0; b < mines[0].length; b ++) {
+			if (document.getElementById(a + "," + b).innerHTML != " " || mines[a][b] == "mine") track ++;
+		}
+	}
+	if (track == total) {
+		ready = false;
+		setTimeout("winMessage()",500);
+	}
+}
+
+function winMessage() {
+	alert("You win!");
+	hed.innerHTML = "You win!";
+	endGame();
+}
+
+//  []   <>
+</script>
+<style>
+body {color:transparent; text-align:center; font-size:20px; margin:0;}
+div {color:black; background-color:skyblue;}
+button.btn {background-color:lawngreen; border:2px solid black; color:black; font-size:20px; font-weight:bold;}
+div.sq, button.sq {
+	background-color:lightgrey;
+	border:2px solid grey;
+	color:rgb(30,30,255);
+	position:absolute;
+	font-size:20px;
+	margin:0;
+	padding:0;
+}
+</style>
+</head>
+<body>
+<center>
+<div id="out" style="width:98%; padding:4px; border-bottom:3px solid blue;">Minesweeper</div><div style="font-size:3px; padding:0; color:transparent; background-color:transparent; height:5px;">-----------</div>
+<div id="field" style="width:400px; height:240px; border:2px solid blue;"></div>
+<div style="font-size:3px; padding:0; color:transparent; background-color:transparent; height:5px;">-----------</div>
+<span style="color:black;">New Game: </span> 
+<button class="btn" onClick="newGame(1);">EASY</button> 
+<button class="btn" onClick="newGame(2);">MEDIUM</button> 
+<button class="btn"onClick="newGame(3);">HARD</button>
+</center>
+</body>
+</html>

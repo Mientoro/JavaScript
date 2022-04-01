@@ -1,0 +1,1382 @@
+<HTML>
+<meta name="viewport" content="width=device-width">
+<head>
+<title>
+Dodge em!
+</title>
+<script>
+var cvs;
+var cvs1;
+var isTouching = false;
+var doneTouch = 0;
+var mx = 300;
+var my = 0;
+var mxCh = 0;
+var myCh = 0;
+var objCount = 0;
+var addCheck = 0;
+var objx = 0;
+var objy = 0;
+var objw = 0;
+var objxspeed = 0;
+var objyspeed = 0;
+var objh = 0;
+var objrad = 0;
+var objcolor;
+var randNum;
+var alerted = false;
+var setDraw=false;
+var objChoice;
+var level = 1;
+var levelTarget = 750;
+var scoreboardCount = -50;
+var scoreboardCount2 = 0;
+var message="Level one: get 750 points";
+var writeMessage="nothing";
+var writeMessage2="nothing";
+var incoming = true;
+var backDrawn = false;
+var startB = {x:150, y:270, w:130, h:50}
+var objs = [];
+var tank = {x:150, y:125, rad:10, angle:0, xspeed:0, yspeed:0}
+var gameOver = false;
+var paused = false;
+var pausedMessage = "nothing";
+var alreadyPaused=false;
+var nextLevel = false;
+var score = 0;
+var speed = 0;
+var highscore = 0;
+var started = false;
+var help = false;
+var page = 1;
+var freeze = 1;
+var checking = setInterval(gameCheck, 30);
+
+function gameCheck() {
+cvs=document.getElementById("canvas").getContext("2d");
+if (!started&&!backDrawn&&!help) backGround();
+if (!started&&!help) startScreen();
+else if (!started&&help) helpScreen();
+else if (!gameOver&&!help) {
+if (!paused) {
+if (my < 0) {
+my = 10;
+paused = true;
+}
+if (my > 300) {
+my = 290;
+paused = true;
+}
+score ++;
+speed ++;
+if (score == levelTarget) upLevel();
+cvs.clearRect(0,0,300,360);
+addObj();
+drawTank();
+drawArrows();
+scoreboard();
+}
+pauseCheck();
+}
+if (gameOver) {
+gameOverScreen();
+scoreboard();
+}
+drawBorders();
+if (highscore<score) highscore=score;
+if (localStorage.dodgeemhighscore) {
+if (highscore<localStorage.dodgeemhighscore) highscore=localStorage.dodgeemhighscore;
+else localStorage.dodgeemhighscore=highscore;
+}
+else localStorage.dodgeemhighscore=0;
+}
+
+function upLevel() {
+objs=[];
+speed = 0;
+if (highscore<score) highscore=score;
+writeMessage = "nothing";
+writeMessage2 = "nothing";
+levelTarget += 750 + 250*(level);
+level ++;
+scoreboardCount=-50;
+scoreboardCount2 = 0;
+message = "Level "+level+": get "+levelTarget+" points";
+paused = true;
+pausedMessage="Level "+level;
+incoming = true;
+nextLevel = true;
+mx = 150;
+my = 275;
+tank.x = 150;
+tank.y = 125;
+freeze = 1;
+}
+
+function erase() {
+for (var d = 0; d<5; d++) {
+if (objs.length>0) objs.splice(Math.floor(Math.random()*objs.length),1);
+}
+writeMessage = "nothing";
+writeMessage2 = "nothing";
+scoreboardCount=0;
+scoreboardCount2 = 0;
+incoming = false;
+}
+
+function drawTank() {
+cvs=document.getElementById("canvas").getContext("2d");
+tank.angle = Math.atan(Math.abs(my-tank.y)/Math.abs(mx-tank.x));
+if (mx<tank.x&&my>tank.y) {
+if (!help) {
+tank.xspeed = -Math.PI/2+tank.angle;
+tank.yspeed = tank.angle;
+}
+tank.angle = Math.PI - tank.angle;
+}
+if (mx<tank.x&&my<tank.y) {
+if (!help) {
+tank.xspeed = -Math.PI/2+tank.angle;
+tank.yspeed = tank.angle*-1;
+}
+tank.angle = -Math.PI+tank.angle;
+}
+if (mx>tank.x&&my<tank.y) {
+if (!help) {
+tank.xspeed = Math.PI/2 - tank.angle;
+tank.yspeed = tank.angle*-1;
+}
+tank.angle *= -1;
+}
+if (mx>tank.x&&my>tank.y&&!help) {
+tank.xspeed = Math.PI/2 - tank.angle;
+tank.yspeed = tank.angle;
+}
+cvs.fillStyle="black";
+cvs.strokeStyle="rgb(255,0,0)";
+cvs.lineWidth=3;
+cvs.save();
+cvs.translate(tank.x, tank.y);
+cvs.rotate(tank.angle);
+cvs.beginPath();
+cvs.arc(0, 0, tank.rad, 0, Math.PI*2, true);
+cvs.fill();
+cvs.moveTo(0, 0);
+cvs.lineTo(tank.rad+5, 0);
+cvs.stroke();
+cvs.closePath();
+cvs.restore();
+if (speed>150&&speed<1000) {
+tank.xspeed*=speed/150;
+tank.yspeed*=speed/150;
+}
+else if (speed>=1000) {
+tank.xspeed*=6.7;
+tank.yspeed*=6.7;
+}
+if (freeze > 1) {
+tank.xspeed/=freeze;
+tank.yspeed/=freeze;
+freeze -= 0.02;
+}
+tank.x+=tank.xspeed;
+tank.y+=tank.yspeed;
+if (Math.sqrt(Math.pow(mx-tank.x, 2)+Math.pow(my-tank.y, 2))<tank.rad&&!help) gameOver=true;
+}
+
+function addObj() {
+objCount ++;
+cvs=document.getElementById('canvas').getContext('2d');
+if ((objCount > 40)&&(!setDraw)) {
+objCount = 0;
+randNum=Math.floor(Math.random()*8)+1;
+if (writeMessage.substring(0,1)=="L") randNum = 1;
+if(randNum==1||randNum==3||randNum==6||randNum==8){
+if (randNum!=8) {
+objcolor = getColor().randC;
+objrad = 6 + Math.floor(Math.random()*10);
+}
+else {
+objrad=15;
+addCheck += 7;
+var upgrade = Math.floor(Math.random()*3)+1;
+if (level==1) upgrade = 0;
+}
+objx = Math.floor(Math.random()*290)+5;
+objy = Math.floor(Math.random()*290)+5;
+setDraw = true;
+}
+if (randNum==2) {
+var lorr = Math.floor(Math.random()*2)+1;
+if (incoming&&message=="caveman incoming left") lorr = 2;
+if (incoming&&message=="caveman incoming right") lorr = 1;
+if (lorr==1) {
+objx = -250;
+objxspeed = 3.5;
+message = "caveman incoming left";
+}
+else {
+objx = 550;
+objxspeed = -3.5;
+message = "caveman incoming right";
+}
+objy = Math.floor(Math.random()*175)+75;
+incoming=true;
+scoreboardCount=0;
+objs.push(["caveman", objx, objy, objxspeed, objcolor]);
+addCheck += 7;
+}
+else if (randNum==4) {
+var torb = Math.floor(Math.random()*2)+1;
+if (torb==1) {
+objy = -350;
+objyspeed = 5;
+message = "rocket incoming from top";
+}
+if (torb==2) {
+objy = 650;
+objyspeed = -5;
+message = "rocket incoming from bottom";
+}
+incoming=true;
+scoreboardCount=0;
+objx = Math.floor(Math.random()*260)+20;
+objs.push(["rocket", objx, objy, objyspeed]);
+addCheck += 7;
+}
+else if (randNum==5) {
+var corner = Math.floor(Math.random()*4)+1;
+if (corner == 1) {
+objx = -30;
+objy = -30;
+objxspeed = 1.5;
+objyspeed = 1.5;
+message = "UFO incoming top left";
+}
+if (corner == 2) {
+objx = 330;
+objy = -30;
+objxspeed = -1.5;
+objyspeed = 1.5;
+message = "UFO incoming top right";
+}
+if (corner == 3) {
+objx = 330;
+objy = 330;
+objxspeed = -1.5;
+objyspeed = -1.5;
+message = "UFO incoming bottom right";
+}
+if (corner == 4) {
+objx = -30;
+objy = 330;
+objxspeed = 1.5;
+objyspeed = -1.5;
+message = "UFO incoming bottom left";
+}
+objcolor = getColor().randC;
+incoming=true;
+addCheck+=7;
+objs.push(["ufo", objx, objy, objxspeed, objyspeed, objcolor, 0, 0]);
+}
+else if (randNum==7) {
+var topBot = Math.floor(Math.random()*2) +1;
+if (topBot == 1) {
+objy = -140;
+message = "spider incoming from top";
+objyspeed = 2;
+incoming = true;
+}
+if (topBot == 2) {
+objy = 440;
+message = "spider incoming from bottom";
+objyspeed = -2;
+incoming = true;
+}
+objx = Math.floor(Math.random()*300);
+objxspeed = 0;
+addCheck += 7;
+objs.push(["spider", objx, objy, objxspeed, objyspeed]);
+}
+}
+if (setDraw&&objCount>5&&objCount<10) {
+cvs.fillStyle=objcolor;
+cvs.strokeStyle="black";
+if (randNum==1||randNum==3||randNum==6) {
+cvs.beginPath();
+cvs.arc(objx, objy, objrad, 0, Math.PI*2, true);
+cvs.fill();
+cvs.closePath();
+}
+if (randNum==2) {
+objcolor = "brown";
+incoming=true;
+addCheck += 7;
+}
+if (objCount>6&&objCount<9) addCheck ++;
+}
+else if(setDraw&&objCount>=15)objCount=0;
+if (addCheck > 6) {
+objCount = 0;
+addCheck = 0;
+setDraw = false;
+if (randNum==1||randNum==3||randNum==6||randNum==8) {
+var circleName;
+if (randNum!=8) circleName="hole";
+else if (upgrade == 1) circleName = "freeze";
+else if (upgrade == 2) circleName = "eraser";
+else if (upgrade == 3) circleName = "uplvl";
+if (circleName == "hole") objs.push([circleName,objx,objy,objrad,objcolor]);
+else objs.push([circleName,objx,objy,objrad,0]);
+}
+}
+for (var o = 0; o < objs.length; o++) {
+cvs.strokeStyle="black";
+if (objs[o][0]=="hole") {
+cvs.fillStyle = objs[o][4];
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<objs[o][3]+1) gameOver=true;
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],objs[o][3],0,7);
+cvs.fill();
+cvs.closePath();
+}
+else if (objs[o][0]=="freeze") {
+objs[o][4] ++;
+cvs.fillStyle="dodgerblue";
+cvs.strokeStyle="blue";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],15,0,7);
+cvs.fill();
+cvs.closePath();
+cvs.globalCompositeOperation="source-atop";
+cvs.fillStyle="cyan";
+cvs.beginPath();
+cvs.moveTo(objs[o][1]-15,objs[o][2]-16);
+cvs.lineTo(objs[o][1]-11,objs[o][2]+6);
+cvs.lineTo(objs[o][1]-7,objs[o][2]-16);
+cvs.lineTo(objs[o][1]-3,objs[o][2]+8);
+cvs.lineTo(objs[o][1]+1,objs[o][2]-16);
+cvs.lineTo(objs[o][1]+5,objs[o][2]+8);
+cvs.lineTo(objs[o][1]+9,objs[o][2]-16);
+cvs.lineTo(objs[o][1]+11,objs[o][2]+5);
+cvs.lineTo(objs[o][1]+17,objs[o][2]-16);
+cvs.fill();
+cvs.closePath();
+cvs.globalCompositeOperation="source-over";
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],15,0,7)
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.font="26px marker felt";
+cvs.textAlign="center";
+cvs.fillText("F",objs[o][1],objs[o][2]+9);
+cvs.textAlign="start";
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<objs[o][3]+1){
+freeze += 5;
+objs.splice(o,1);
+}
+else if (objs[o][4]>70) objs.splice(o,1);
+}
+else if (objs[o][0]=="eraser") {
+objs[o][4] ++;
+cvs.fillStyle="lawngreen";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],15,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle = "hotpink";
+cvs.strokeStyle="deeppink";
+cvs.lineWidth=1;
+cvs.beginPath();
+cvs.moveTo(objs[o][1]-9,objs[o][2]+6);
+cvs.lineTo(objs[o][1],objs[o][2]-7);
+cvs.lineTo(objs[o][1]+8,objs[o][2]-7);
+cvs.lineTo(objs[o][1]-1,objs[o][2]+6);
+cvs.lineTo(objs[o][1]-9,objs[o][2]+6);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<objs[o][3]+1){
+objs.splice(o,1);
+erase();
+}
+else if (objs[o][4]>70) objs.splice(o,1);
+}
+else if (objs[o][0]=="uplvl") {
+objs[o][4] ++;
+cvs.textAlign="center";
+cvs.fillStyle = "orange";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],15,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle = "yellow";
+cvs.strokeStyle="orangered";
+cvs.beginPath();
+cvs.moveTo(objs[o][1],objs[o][2]-12);
+cvs.lineTo(objs[o][1]-10,objs[o][2]-2);
+cvs.lineTo(objs[o][1]-7,objs[o][2]-2);
+cvs.lineTo(objs[o][1]-7,objs[o][2]+10);
+cvs.lineTo(objs[o][1]+6.5,objs[o][2]+10);
+cvs.lineTo(objs[o][1]+6.5,objs[o][2]-2);
+cvs.lineTo(objs[o][1]+9.5,objs[o][2]-2);
+cvs.lineTo(objs[o][1],objs[o][2]-12);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.font="12px marker felt";
+cvs.fillText("Up",objs[o][1],objs[o][2]+4);
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<objs[o][3]+1){
+score = levelTarget - 1;
+objs.splice(o,1);
+}
+else if (objs[o][4]>70) objs.splice(o,1);
+cvs.textAlign="start";
+}
+if (objs[o][0]=="caveman") {
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+objs[o][1] += objs[o][3];
+if (objs[o][3]>0) {
+if (mx < objs[o][1]+3&&mx > objs[o][1]-22&&my < objs[o][2]+22&&my > objs[o][2]-22) gameOver=true;
+cvs.beginPath();
+cvs.moveTo(150,-400);
+cvs.lineTo(objs[o][1], objs[o][2]);
+cvs.stroke();
+cvs.closePath();
+cvs.lineWidth=3;
+cvs.strokeStyle="saddlebrown";
+cvs.fillStyle="saddlebrown";
+cvs.beginPath();
+cvs.arc(objs[o][1]-18,objs[o][2]-14,5.5,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.moveTo(objs[o][1]-18, objs[o][2]-7);
+cvs.lineTo(objs[o][1], objs[o][2]-5);
+cvs.moveTo(objs[o][1]-18, objs[o][2]-7);
+cvs.lineTo(objs[o][1], objs[o][2]);
+cvs.moveTo(objs[o][1]-18, objs[o][2]-10);
+cvs.lineTo(objs[o][1]-12, objs[o][2]+15);
+cvs.lineTo(objs[o][1]+6, objs[o][2]+17);
+cvs.moveTo(objs[o][1]-12, objs[o][2]+15);
+cvs.lineTo(objs[o][1]+4, objs[o][2]+22);
+cvs.stroke();
+cvs.closePath();
+}
+if (objs[o][3]<0) {
+if (mx > objs[o][1]-3&&mx < objs[o][1]+22&&my < objs[o][2]+22&&my > objs[o][2]-22) gameOver=true;
+cvs.beginPath();
+cvs.moveTo(150,-400);
+cvs.lineTo(objs[o][1], objs[o][2]);
+cvs.stroke();
+cvs.closePath();
+cvs.lineWidth=3;
+cvs.strokeStyle="saddlebrown";
+cvs.fillStyle="saddlebrown";
+cvs.beginPath();
+cvs.arc(objs[o][1]+18,objs[o][2]-14,5.5,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.moveTo(objs[o][1]+18, objs[o][2]-7);
+cvs.lineTo(objs[o][1], objs[o][2]-5);
+cvs.moveTo(objs[o][1]+18, objs[o][2]-7);
+cvs.lineTo(objs[o][1], objs[o][2]);
+cvs.moveTo(objs[o][1]+18, objs[o][2]-10);
+cvs.lineTo(objs[o][1]+12, objs[o][2]+15);
+cvs.lineTo(objs[o][1]-6, objs[o][2]+17);
+cvs.moveTo(objs[o][1]+12, objs[o][2]+15);
+cvs.lineTo(objs[o][1]-4, objs[o][2]+22);
+cvs.stroke();
+cvs.closePath();
+}
+if (objs[o][3]>0&&objs[o][1]>350) objs.splice(o,1);
+if (objs[o][3]<0&&objs[o][1]<-50) objs.splice(o,1);
+}
+if (objs[o][0]=="rocket") {
+cvs.fillStyle="white";
+cvs.lineWidth=1;
+objs[o][2]+=objs[o][3];
+cvs.fillRect(objs[o][1]-8, objs[o][2]-15, 16, 30);
+cvs.strokeRect(objs[o][1]-8,objs[o][2]-15,16,30);
+cvs.fillStyle="red";
+cvs.beginPath();
+if (objs[o][3]<0) {
+cvs.moveTo(objs[o][1]-8, objs[o][2]-15);
+cvs.lineTo(objs[o][1], objs[o][2]-25);
+cvs.lineTo(objs[o][1]+8, objs[o][2]-15);
+cvs.moveTo(objs[o][1]-8, objs[o][2]+15);
+cvs.lineTo(objs[o][1]-13, objs[o][2]+18);
+cvs.lineTo(objs[o][1]-8, objs[o][2]+5);
+cvs.moveTo(objs[o][1]+8, objs[o][2]+15);
+cvs.lineTo(objs[o][1]+13, objs[o][2]+18);
+cvs.lineTo(objs[o][1]+8, objs[o][2]+5);
+if (mx < objs[o][1]+11 && mx > objs[o][1]-11 && my < objs[o][2]+16 && my > objs[o][2]-23) gameOver=true;
+if(objs[o][2]<-40) objs.splice(o,1);
+}
+else if (objs[o][3]>0) {
+cvs.moveTo(objs[o][1]-8, objs[o][2]+15);
+cvs.lineTo(objs[o][1], objs[o][2]+25);
+cvs.lineTo(objs[o][1]+8, objs[o][2]+15);
+cvs.moveTo(objs[o][1]-8, objs[o][2]-15);
+cvs.lineTo(objs[o][1]-13, objs[o][2]-18);
+cvs.lineTo(objs[o][1]-8, objs[o][2]-5);
+cvs.moveTo(objs[o][1]+8, objs[o][2]-15);
+cvs.lineTo(objs[o][1]+13, objs[o][2]-18);
+cvs.lineTo(objs[o][1]+8, objs[o][2]-5);
+if (mx < objs[o][1]+11 && mx > objs[o][1]-11 && my < objs[o][2]+23 && my > objs[o][2]-16) gameOver=true;
+if(objs[o][2]>340) objs.splice(o,1);
+}
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+if (objs[o][0] == "ufo") {
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<15) gameOver=true;
+objs[o][6] ++;
+objs[o][7] ++;
+if (objs[o][7] > 40) {
+if (objs[o][6]>15) {
+objs[o][6] = 0;
+objs[o][3]+= Math.random()-Math.random();
+objs[o][4] += Math.random()-Math.random();
+if (objs[o][3] > 3) objs[o][3] = 3;
+if (objs[o][3] < -3) objs[o][3] = -3;
+if (objs[o][4] > 3) objs[o][4] = 3;
+if (objs[o][4] < -3) objs[o][4] = -3;
+}
+objs[o][1] += objs[o][3];
+objs[o][2] += objs[o][4];
+}
+cvs.fillStyle = objs[o][5];
+cvs.strokeStyle = "black";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(objs[o][1], objs[o][2], 12, 0, 7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.lineWidth=1;
+cvs.fillStyle="red";
+cvs.arc(objs[o][1], objs[o][2], 5, 0, 7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.fillStyle="yellow";
+cvs.arc(objs[o][1]-10, objs[o][2], 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1]+10, objs[o][2], 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1], objs[o][2]-10, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1], objs[o][2]+10, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1]+7, objs[o][2]+7, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1]+7, objs[o][2]-7, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1]-7, objs[o][2]+7, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(objs[o][1]-7, objs[o][2]-7, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+if (objs[o][1]<-40||objs[o][1]>340|| objs[o][2]<-40||objs[o][2]>340) objs.splice(o, 1);
+}
+else if (objs[o][0]=="spider") {
+if (Math.sqrt(Math.pow(mx-objs[o][1], 2)+Math.pow(my-objs[o][2], 2))<12) gameOver=true;
+cvs.fillStyle = "black";
+cvs.strokeStyle = "black";
+cvs.lineWidth = 2;
+if (mx<objs[o][1]-3&&objs[o][3]>-3) objs[o][3] -= 0.1;
+else if (mx>objs[o][1]+3&&objs[o][3]<3) objs[o][3] += 0.1;
+objs[o][1] += objs[o][3];
+objs[o][2] += objs[o][4];
+cvs.beginPath();
+cvs.arc(objs[o][1],objs[o][2],5,0,7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]-8,objs[o][2]-6);
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]+8,objs[o][2]-6);
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]-8,objs[o][2]+6);
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]+8,objs[o][2]+6);
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]-10,objs[o][2]);
+cvs.moveTo(objs[o][1],objs[o][2]);
+cvs.lineTo(objs[o][1]+10,objs[o][2]);
+cvs.stroke();
+cvs.closePath();
+if (objs[o][4]<0&&objs[o][2]<-20) objs.splice(o,1);
+if (objs[o][4]>0&&objs[o][2]>320) objs.splice(o,1);
+}
+}
+}
+
+function pauseCheck() {
+if (mx < 5) mx = 10;
+if (mx > 295) mx = 290;
+if (paused&&!alreadyPaused) {
+alreadyPaused = true;
+cvs=document.getElementById('canvas').getContext('2d');
+cvs.globalAlpha = 0.6;
+cvs.fillStyle = "grey";
+cvs.fillRect(0,0,300,300);
+cvs.font = "bold 25px Arial";
+cvs.strokeStyle = "white";
+cvs.lineWidth = 2;
+if (pausedMessage.substring(0,1)!="L") {
+cvs.fillText("PAUSED", 100, 150);
+cvs.strokeText("PAUSED", 100, 150);
+}
+else {
+cvs.fillStyle = "black";
+cvs.fillText(pausedMessage, 110, 100);
+cvs.strokeText(pausedMessage, 110, 100);
+}
+cvs.globalAlpha = 1.0;
+cvs.fillStyle = "rgb(250,250,250)";
+cvs.strokeStyle = "rgb(0,250,0)";
+cvs.beginPath();
+cvs.arc(mx, my, 9, 0, Math.PI*2, true);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle = "rgb(0,0,0)";
+cvs.fillStyle = "black";
+cvs.strokeStyle = "white";
+cvs.lineWidth = 0.75;
+cvs.font = "bold 16px Arial";
+if (mx<150) {
+cvs.fillText("Touch to continue", mx+13, my+4);
+cvs.strokeText("Touch to continue", mx+13, my+4);
+}
+if (mx>=150) {
+cvs.fillText("Touch to continue", mx-150, my+4);
+cvs.strokeText("Touch to continue", mx-150, my+4);
+}
+mxCh = mx;
+myCh = my;
+}
+if (alreadyPaused&&!nextLevel) {
+if ((mxCh!=mx)||(myCh!=my)) {
+if ((mxCh<mx+13)&&(mxCh>mx-13)&&(myCh<my+13)&&(myCh>my-13)) {
+paused = false;
+alreadyPaused = false;
+pausedMessage="nothing";
+}
+}
+}
+}
+
+function scoreboard() {
+if (highscore<score) highscore=score;
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.fillStyle="black";
+cvs.fillRect(0,300,300,60);
+cvs.fillStyle="white";
+cvs.font="bold 18px trebuchet ms";
+cvs.fillText("Score:"+score,6,320);
+cvs.fillText("High Score:"+highscore,130,320);
+if (incoming) {
+if (writeMessage == "nothing") {
+writeMessage=message;
+message = "nothing";
+}
+else if (writeMessage2 == "nothing"&&message!="nothing") {
+writeMessage2 = message;
+message = "nothing";
+scoreboardCount2 = 0;
+}
+else if (message!="nothing") {
+writeMessage = writeMessage2;
+writeMessage2 = message;
+scoreboardCount = scoreboardCount2;
+scoreboardCount2 = 0;
+message = "nothing";
+}
+if (writeMessage2=="nothing") {
+cvs.fillText(writeMessage, 10, 347);
+scoreboardCount ++;
+}
+else if (writeMessage2 != "nothing") {
+cvs.font="bold 13px trebuchet ms";
+cvs.fillText(writeMessage2, 10, 353);
+cvs.fillText(writeMessage, 10, 338);
+scoreboardCount ++;
+scoreboardCount2 ++;
+}
+if (scoreboardCount > 100) {
+if (writeMessage2=="nothing") {
+writeMessage = "nothing";
+scoreboardCount = 0;
+incoming = false;
+}
+else {
+writeMessage = writeMessage2;
+writeMessage2 = "nothing";
+scoreboardCount = scoreboardCount2;
+scoreboardCount2 = 0;
+}
+}
+}
+}
+function drawArrows() {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.fillStyle = "red";
+cvs.strokeStyle = "black";
+cvs.lineWidth = 2;
+for(var a=0; a<objs.length; a++) {
+if (objs[a][0] == "ufo") {
+if (objs[a][1]<-15&&objs[a][2]<-15) {
+cvs.beginPath();
+cvs.moveTo(5,5);
+cvs.lineTo(12,5);
+cvs.lineTo(10,7);
+cvs.lineTo(17,14);
+cvs.lineTo(14,17);
+cvs.lineTo(7,10);
+cvs.lineTo(5,12);
+cvs.lineTo(5,5);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][1]>315&&objs[a][2]<-15) {
+cvs.beginPath();
+cvs.moveTo(295,5);
+cvs.lineTo(288,5);
+cvs.lineTo(290,7);
+cvs.lineTo(283,14);
+cvs.lineTo(286,17);
+cvs.lineTo(293,10);
+cvs.lineTo(295,12);
+cvs.lineTo(295,5);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][1]>315&&objs[a][2]>315) {
+cvs.beginPath();
+cvs.moveTo(295,295);
+cvs.lineTo(288,295);
+cvs.lineTo(290,293);
+cvs.lineTo(283,286);
+cvs.lineTo(286,283);
+cvs.lineTo(293,290);
+cvs.lineTo(295,288);
+cvs.lineTo(295,295);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][1]<-15&&objs[a][2]>315) {
+cvs.beginPath();
+cvs.moveTo(5,295);
+cvs.lineTo(12,295);
+cvs.lineTo(10,293);
+cvs.lineTo(17,286);
+cvs.lineTo(14,283);
+cvs.lineTo(7,290);
+cvs.lineTo(5,288);
+cvs.lineTo(5,295);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+}
+if (objs[a][1]<-15&&objs[a][3]>0) {
+cvs.beginPath();
+cvs.moveTo(5,objs[a][2]);
+cvs.lineTo(10,objs[a][2]+5);
+cvs.lineTo(10,objs[a][2]+2);
+cvs.lineTo(17,objs[a][2]+2);
+cvs.lineTo(17,objs[a][2]-2);
+cvs.lineTo(10,objs[a][2]-2);
+cvs.lineTo(10,objs[a][2]-5);
+cvs.lineTo(5,objs[a][2]);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][1]>315&&objs[a][3]<0) {
+cvs.beginPath();
+cvs.moveTo(295,objs[a][2]);
+cvs.lineTo(290,objs[a][2]+5);
+cvs.lineTo(290,objs[a][2]+2);
+cvs.lineTo(283,objs[a][2]+2);
+cvs.lineTo(283,objs[a][2]-2);
+cvs.lineTo(290,objs[a][2]-2);
+cvs.lineTo(290,objs[a][2]-5);
+cvs.lineTo(295,objs[a][2]);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][2]<-15&&objs[a][4]>0||objs[a][0]=="rocket"&&objs[a][3]>0&&objs[a][2]<-15) {
+cvs.beginPath();
+cvs.moveTo(objs[a][1],5);
+cvs.lineTo(objs[a][1]+5,10);
+cvs.lineTo(objs[a][1]+2,10);
+cvs.lineTo(objs[a][1]+2,17);
+cvs.lineTo(objs[a][1]-2,17);
+cvs.lineTo(objs[a][1]-2,10);
+cvs.lineTo(objs[a][1]-5,10);
+cvs.lineTo(objs[a][1],5);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+else if (objs[a][2]>315&&objs[a][4]<0||objs[a][0]=="rocket"&&objs[a][3]<0&&objs[a][2]>315) {
+cvs.beginPath();
+cvs.moveTo(objs[a][1],295);
+cvs.lineTo(objs[a][1]+5,290);
+cvs.lineTo(objs[a][1]+2,290);
+cvs.lineTo(objs[a][1]+2,283);
+cvs.lineTo(objs[a][1]-2,283);
+cvs.lineTo(objs[a][1]-2,290);
+cvs.lineTo(objs[a][1]-5,290);
+cvs.lineTo(objs[a][1],295);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+}
+}
+}
+function backGround(brad, bx, by, colour) {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.clearRect(0,0,300,360);
+for (var b = 0; b < 20; b++) {
+color = getColor();
+cvs.globalAlpha=Math.random()*.5 + .5;
+cvs.globalCompositeAlpha="lighter";
+brad = Math.round(Math.random()*45)+5;
+bx = Math.round(Math.random()*320)-10;
+by = Math.round(Math.random()*370)-10;
+cvs.fillStyle = color.randC;
+cvs.beginPath();
+cvs.arc(bx, by, brad, 0, Math.PI*2, true);
+cvs.fill();
+cvs.closePath();
+}
+cvs.globalCompositeAlpha="source-over";
+cvs.globalAlpha=1;
+backDrawn=true;
+}
+function startScreen() {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.font="bold 44pt Marker Felt";
+cvs.fillStyle="black";
+cvs.strokeStyle="white";
+cvs.lineWidth=3;
+cvs.save();
+cvs.translate(28,175);
+cvs.rotate(-Math.PI/9);
+cvs.strokeText("DODGE 'EM", 0,0);
+cvs.fillText("DODGE 'EM", 0,0);
+cvs.restore();
+cvs.font="25px futura";
+cvs.lineWidth=1;
+cvs.strokeText("Avoid everything!", 52, 215);
+cvs.fillText("Avoid everything!", 52, 215);
+cvs.fillStyle=getColor().randC;
+cvs.strokeStyle=getColor().randC;
+cvs.lineWidth=3;
+cvs.beginPath();
+cvs.arc(startB.x-startB.w/2+10,startB.y-startB.h/2+10, 10, Math.PI, Math.PI*1.5, false);
+cvs.arc(startB.x+startB.w/2-10,startB.y-startB.h/2+10, 10, Math.PI*1.5, Math.PI*2, false);
+cvs.arc(startB.x+startB.w/2-10,startB.y+startB.h/2-10, 10, 0, Math.PI*.5, false);
+cvs.arc(startB.x-startB.w/2+10,startB.y+startB.h/2-10, 10, Math.PI*.5, Math.PI, false);
+cvs.moveTo(startB.x-startB.w/2, startB.y+startB.h/2-10);
+cvs.lineTo(startB.x-startB.w/2, startB.y-startB.h/2+10);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.font="bold 30px trebuchet ms";
+cvs.fillStyle="black";
+cvs.strokeStyle="white";
+cvs.lineWidth=2;
+cvs.strokeText("PLAY", startB.x-35, startB.y+3);
+cvs.fillText("PLAY",startB.x-35,startB.y+3);
+cvs.font="bold 14px trebuchet ms";
+cvs.textAlign="center";
+cvs.strokeText("(press and hold)", startB.x, startB.y+18);
+cvs.fillText("(press and hold)",startB.x,startB.y+18);
+cvs.fillStyle="red";
+cvs.strokeStyle="black";
+cvs.font="bold 25px trebuchet ms";
+cvs.fillRect(0,0,75,40);
+cvs.strokeRect(0,0,75,40);
+cvs.fillStyle="black";
+cvs.fillText("HELP",38,28);
+cvs.textAlign="start";
+}
+
+function helpScreen() {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.clearRect(0,0,300,360);
+if (page == 1) {
+cvs.font="28pt Arial";
+cvs.fillStyle = "black";
+cvs.textAlign="center";
+cvs.fillText("Instructions:",180,40);
+cvs.lineWidth = 2;
+cvs.fillStyle="red";
+cvs.strokeStyle="black";
+cvs.font="bold 25px trebuchet ms";
+cvs.textAlign="center"
+cvs.fillRect(0,0,75,40);
+cvs.strokeRect(0,0,75,40);
+cvs.fillStyle="black";
+cvs.fillText("BACK",38,28);
+cvs.fillText("Dangers (do not touch):",150,75);
+cvs.textAlign="end";
+cvs.fillText("Holes:",150,110);
+cvs.fillStyle=getColor().randC;
+cvs.beginPath();
+cvs.arc(200,101,13,0,7);
+cvs.fill();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.fillText("Cavemen:",150,155)
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.moveTo(200,149);
+cvs.lineTo(230,100);
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="saddlebrown";
+cvs.strokeStyle="saddlebrown";
+cvs.lineWidth=3;
+cvs.beginPath();
+cvs.arc(200-18,150-14,5.5,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.moveTo(200-18, 150-7);
+cvs.lineTo(200, 150-5);
+cvs.moveTo(200-18, 150-7);
+cvs.lineTo(200, 150);
+cvs.moveTo(200-18, 150-10);
+cvs.lineTo(200-12, 165);
+cvs.lineTo(206, 167);
+cvs.moveTo(200-12, 165);
+cvs.lineTo(204, 172);
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.fillText("Rockets:",150,215);
+cvs.fillStyle="white";
+cvs.strokeStyle = "black";
+cvs.lineWidth=1;
+cvs.fillRect(200-8, 210-15, 16, 30);
+cvs.strokeRect(200-8,210-15,16,30);
+cvs.fillStyle="red";
+cvs.beginPath();
+cvs.moveTo(200-8, 210-15);
+cvs.lineTo(200, 210-25);
+cvs.lineTo(208, 210-15);
+cvs.moveTo(200-8, 225);
+cvs.lineTo(200-13, 228);
+cvs.lineTo(200-8, 215);
+cvs.moveTo(208, 225);
+cvs.lineTo(213, 228);
+cvs.lineTo(208, 215);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.fillText("UFO's:",150,263);
+cvs.fillStyle = getColor().randC;
+cvs.strokeStyle = "black";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(200, 255, 12, 0, 7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.lineWidth=1;
+cvs.fillStyle="red";
+cvs.arc(200, 255, 5, 0, 7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.beginPath();
+cvs.fillStyle="yellow";
+cvs.arc(200-10, 255, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(210, 255, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(200, 255-10, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(200, 265, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(207, 262, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(207, 248, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(200-7, 262, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.arc(200-7, 255-7, 2, 0, 7);
+cvs.fill();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.fillText("Spiders:",150,300);
+cvs.beginPath();
+cvs.arc(200,292,5,0,7);
+cvs.fill();
+cvs.closePath();
+cvs.beginPath();
+cvs.moveTo(200,292);
+cvs.lineTo(200-8,292-6);
+cvs.moveTo(200,292);
+cvs.lineTo(208,292-6);
+cvs.moveTo(200,292);
+cvs.lineTo(200-8,298);
+cvs.moveTo(200,292);
+cvs.lineTo(208,298);
+cvs.moveTo(200,292);
+cvs.lineTo(200-10,292);
+cvs.moveTo(200,292);
+cvs.lineTo(210,292);
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.fillText("The Tank:",150,338);
+tank.x = 200;
+tank.y = 330;
+drawTank();
+cvs.fillStyle="white";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.fillRect(240,320,60,40);
+cvs.strokeRect(240,320,60,40);
+cvs.lineWidth=7;
+cvs.lineJoin="round";
+cvs.lineCap="round";
+cvs.beginPath();
+cvs.moveTo(250,340);
+cvs.lineTo(290,340);
+cvs.lineTo(277,352);
+cvs.moveTo(290,340);
+cvs.lineTo(277,328);
+cvs.stroke();
+cvs.closePath();
+}
+else if (page == 2) {
+cvs.font="28pt Arial";
+cvs.fillStyle = "black";
+cvs.textAlign="center";
+cvs.fillText("Instructions:",180,40);
+cvs.lineWidth = 2;
+cvs.fillStyle="red";
+cvs.strokeStyle="black";
+cvs.font="bold 25px trebuchet ms";
+cvs.textAlign="center"
+cvs.fillRect(0,0,75,40);
+cvs.strokeRect(0,0,75,40);
+cvs.fillStyle="black";
+cvs.fillText("BACK",38,28);
+cvs.fillText("Bonuses:",150,80);
+cvs.textAlign="end";
+cvs.fillText("Freeze:",130,120);
+cvs.fillText("Erase:",130,195);
+cvs.fillText("Level Up:",130,270);
+cvs.textAlign="center"
+cvs.font="16px trebuchet ms";
+cvs.fillText("(Temporarily slows down the tank)",150,150);
+cvs.fillText("(Erases 5 of the dangers off the field)",150,225);
+cvs.fillText("(Advances you to the next level)",150,300);
+
+cvs.fillStyle="dodgerblue";
+cvs.strokeStyle="blue";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(180,108,15,0,7);
+cvs.fill();
+cvs.closePath();
+cvs.globalCompositeOperation="source-atop";
+cvs.fillStyle="cyan";
+cvs.beginPath();
+cvs.moveTo(165,92);
+cvs.lineTo(169,114);
+cvs.lineTo(173,92);
+cvs.lineTo(177,116);
+cvs.lineTo(181,92);
+cvs.lineTo(185,116);
+cvs.lineTo(189,92);
+cvs.lineTo(191,113);
+cvs.lineTo(197,92);
+cvs.fill();
+cvs.closePath();
+cvs.globalCompositeOperation="source-over";
+cvs.beginPath();
+cvs.arc(180,108,15,0,7);
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.font="26px marker felt";
+cvs.fillText("F",180,117);
+
+cvs.fillStyle="lawngreen";
+cvs.strokeStyle="black";
+cvs.beginPath();
+cvs.arc(180,183,15,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle = "hotpink";
+cvs.strokeStyle="deeppink";
+cvs.lineWidth=1;
+cvs.beginPath();
+cvs.moveTo(171,189);
+cvs.lineTo(180,176);
+cvs.lineTo(188,176);
+cvs.lineTo(179,189);
+cvs.lineTo(171,189);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+
+cvs.fillStyle = "orange";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.beginPath();
+cvs.arc(180,258,15,0,7);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle = "yellow";
+cvs.strokeStyle="orangered";
+cvs.beginPath();
+cvs.moveTo(180,246);
+cvs.lineTo(170,256);
+cvs.lineTo(173,256);
+cvs.lineTo(173,268);
+cvs.lineTo(186.5,268);
+cvs.lineTo(186.5,256);
+cvs.lineTo(189.5,256);
+cvs.lineTo(180,246);
+cvs.fill();
+cvs.stroke();
+cvs.closePath();
+cvs.fillStyle="black";
+cvs.font="12px marker felt";
+cvs.fillText("Up",180,262);
+
+cvs.fillStyle="white";
+cvs.strokeStyle="black";
+cvs.lineWidth=2;
+cvs.fillRect(240,320,60,40);
+cvs.strokeRect(240,320,60,40);
+cvs.lineWidth=7;
+cvs.lineJoin="round";
+cvs.lineCap="round";
+cvs.beginPath();
+cvs.moveTo(290,340);
+cvs.lineTo(250,340);
+cvs.lineTo(263,352);
+cvs.moveTo(250,340);
+cvs.lineTo(263,328);
+cvs.stroke();
+cvs.closePath();
+}
+cvs.textAlign="start";
+backDrawn = false;
+cvs.globalCompositeOperation="source-over";
+}
+
+function gameOverScreen() {
+cvs.fillStyle = "red";
+cvs.strokeStyle = "black";
+cvs.font = "bold 38pt marker felt";
+cvs.lineWidth = 3;
+cvs.fillText("GAME OVER", 16, 100);
+cvs.strokeText("GAME OVER", 16, 100);
+cvs.fillStyle = "black";
+cvs.strokeStyle = "white";
+cvs.font = "bold 16pt american typewriter";
+cvs.lineWidth = 3;
+cvs.strokeText("Touch to play again",48,200);
+cvs.fillText("Touch to play again", 48, 200);
+message = "nothing";
+scoreboardCount = 0;
+scoreboardCount2 = 0;
+message = "GAME OVER YOU LOSE";
+writeMessage = "nothing";
+writeMessage2 = "nothing";
+incoming = true;
+if (highscore<score) highscore=score;
+if(!alerted) {
+alert("Highscore: "+highscore+"\n"+"Your score: "+score+"\n"+"You made it to level "+level);
+alerted=true;
+if (localStorage.dodgeemhighscore<highscore) localStorage.dodgeemhighscore=highscore;
+}
+}
+
+function getColor(c1,c2,c3) {
+c1 = Math.round(Math.random()*210);
+c2 = Math.round(Math.random()*210);
+c3 = Math.round(Math.random()*210);
+return {randC:"rgb("+c1+","+c2+","+c3+")"};
+}
+function start() {
+cvs1 = document.getElementById("canvas");
+cvs1.addEventListener('touchstart', getTouch, false);
+cvs1.addEventListener('touchmove', getTouch, false);
+cvs1.addEventListener('touchend', touchEnded, false);
+}
+function touchEnded(e) {
+isTouching = false;
+if (!gameOver&&started) paused=true;
+if (nextLevel&&paused) nextLevel = false;
+if (!started&&mx<75&&my<40) {
+if (!help) help = true;
+else if (help) {
+help = false;
+page = 1;
+cvs.clearRect(0,0,300,360);
+}
+mx = 300;
+my = 0;
+}
+if (!started&&mx>250&&my>320&&help) {
+if (page == 1) page = 2;
+else if (page == 2) page = 1;
+}
+if (gameOver) {
+objs = [];
+score = 0;
+speed = 0;
+level = 1;
+message="Level one: get 1000 points";
+scoreboardCount = 0;
+scoreboardCount2 = 0;
+objCount = 0;
+addCheck = 0;
+mx = 300;
+my = 0;
+mxCh = 500;
+myCh = 500;
+tank.x = 150;
+tank.y = 125;
+started = false;
+alerted = false;
+setDraw = false;
+gameOver = false;
+paused = false;
+alreadyPaused = false;
+backDrawn = false;
+help = false;
+pausedMessage = "nothing";
+doneTouch = 0;
+levelTarget = 750;
+scoreboardCount = -50;
+incoming = true;
+writeMessage = "nothing";
+writeMessage2 = "nothing";
+nextLevel = false;
+freeze = 1;
+}
+else if (gameOver) doneTouch ++;
+}
+function getTouch(e) {
+cvs=document.getElementById("canvas").getContext("2d");
+isTouching = true;
+if (e.touches) {
+var p = getCoords(e.touches[e.touches.length-1]);
+mx = p.x;
+my = p.y;
+}
+e.preventDefault();
+if (!started&&!help&&Math.abs(mx-startB.x)<startB.w/2&&Math.abs(my-startB.y)<startB.h/2) {
+started=true;
+tank.x = 150;
+tank.y = 125;
+}
+}
+function getCoords(e) {
+if (e.offsetX) {
+return { x: e.offsetX, y: e.offsetY };
+}
+else if (e.layerX) {
+return { x: e.layerX, y: e.layerY };
+}
+else {
+return { x: e.pageX - cvs1.offsetLeft, y: e.pageY - cvs1.offsetTop };
+}
+}
+function drawBorders() {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.lineWidth=4;
+cvs.strokeStyle="black";
+cvs.beginPath();
+cvs.moveTo(0,0);
+cvs.lineTo(300,0);
+cvs.lineTo(300,360);
+cvs.lineTo(0,360);
+cvs.lineTo(0,0);
+cvs.stroke();
+cvs.closePath();
+}
+</script>
+</head>
+<body onLoad="start();">
+<center>
+<canvas id="canvas" width="300" height="360">
+</canvas>
+</center>
+</body>
+</HTML>

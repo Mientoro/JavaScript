@@ -1,0 +1,252 @@
+<html>
+<head>
+<title>Minigolf</title>
+<script>
+var cvs1;
+var cvs;
+var cvswall2;
+var cvs2;
+var level = 1;
+var lines = [[{x1:0,y1:0,x2:320,y2:0}, {x1:320,y1:0,x2:320,y2:356}, {x1:320,y1:356,x2:0,y2:356}, {x1:0,y1:356,x2:0,y2:0}, {x1:0,y1:0,x2:0,y2:0} ], [{x1:110,y1:100,x2:210,y2:100}], [{x1:50,y1:100,x2:160,y2:60}, {x1:160,y1:60,x2:270,y2:100}, {x1:50,y1:100,x2:50,y2:150}, {x1:270,y1:100,x2:270,y2:150}]];
+var pars = [2, 3, 4];
+var b = { x:160, y:230, r:4, m:0, vx:0, vy:0 };
+var hole = { x:160, y:40, r:5 };
+var gameInterval;
+var drag = false;
+var ms = {x:-100, y:-100, angle:0, dist:0};
+var allHits = 0;
+var lvlHits = 0;
+
+
+function start() {
+for (var a = 1; a < lines.length; a ++) {
+lines[a].push(lines[0][0], lines[0][1], lines[0][2], lines[0][3]);
+}
+cvs1 = document.getElementById("cvs");
+cvs = cvs1.getContext("2d");
+cvswall2 = document.getElementById("cvs2");
+cvs2 = cvswall2.getContext("2d");
+cvs2.lineWidth = 2;
+drawLevel();
+cvs1.ontouchstart = beginDrag;
+cvs1.ontouchend = endDrag;
+cvs1.ontouchmove = dragging;
+cvs1.onmousedown = beginDrag;
+cvs1.onmouseup = endDrag;
+cvs1.onmousemove = dragging;
+gameInterval = setInterval(game, 12);
+}
+
+function upLevel() {
+alert("You scored a " + lvlHits + " on a par " + pars[level-1] + "!");
+level ++;
+drawLevel();
+ms = {x:-100, y:-100, angle:0, dist:0};
+hole = { x:160, y:40, r:5 };
+b = { x:160, y:230, r:4, m:0, vx:0, vy:0 };
+lvlHits = 0;
+drawBall();
+}
+
+function beginDrag(e) {
+e.preventDefault();
+if (e.changedTouches) {
+ms.x = e.changedTouches[0].clientX;
+ms.y = e.changedTouches[0].clientY;
+}
+else {
+ms.x = e.clientX;
+ms.y = e.clientY;
+}
+var dx = ms.x - b.x;
+var dy = ms.y - b.y;
+if (Math.sqrt(dx*dx + dy*dy) < b.r*4 && b.vx == 0 && b.vy == 0) drag = true;
+}
+
+function endDrag(e) {
+e.preventDefault();
+if (drag) {
+b.vx = Math.sin(ms.angle) * ms.dist/50;
+b.vy = Math.cos(ms.angle) * ms.dist/50;
+allHits ++;
+lvlHits ++;
+}
+drag = false;
+}
+
+function dragging(e) {
+e.preventDefault();
+if (drag) {
+if (e.changedTouches) {
+ms.x = e.changedTouches[0].clientX;
+ms.y = e.changedTouches[0].clientY;
+}
+else {
+ms.x = e.clientX;
+ms.y = e.clientY;
+}
+cvs.strokeStyle = "red";
+cvs.lineWidth = b.r*0.7;
+cvs.lineJoin = "round";
+cvs.lineCap = "round";
+}
+}
+
+function drawArrow(p1, p2) {
+var dx = p1.x - p2.x;
+var dy = p1.y - p2.y;
+ms.dist = Math.min(Math.sqrt(dx*dx + dy*dy), 150);
+ms.angle = Math.atan2(dx, dy);
+cvs.save();
+cvs.translate(p1.x, p1.y);
+cvs.rotate(Math.PI-ms.angle);
+cvs.beginPath();
+cvs.moveTo(0,0);
+cvs.lineTo(0, -ms.dist/2);
+cvs.lineTo(-b.r, -ms.dist/2 + b.r*3);
+cvs.moveTo(0, -ms.dist/2);
+cvs.lineTo(b.r, -ms.dist/2 + b.r*3);
+cvs.stroke();
+cvs.closePath();
+cvs.restore();
+}
+
+function drawBall() {
+cvs.fillStyle = "black";
+cvs.beginPath();
+cvs.arc(b.x, b.y, b.r, 0, Math.PI*2, true);
+cvs.fill();
+cvs.closePath();
+}
+
+function game() {
+cvs.clearRect(0, 0, cvs1.width, cvs1.height);
+if (drag) {
+drawArrow(b, ms);
+}
+drawBall();
+for (var a = 0; a < lines[level-1].length; a ++) {
+var ballx = lines[level-1][a].x1 - b.x;
+var bally = lines[level-1][a].y1 - b.y;
+var yDist = (lines[level-1][a].h - bally) - (lines[level-1][a].h / lines[level-1][a].w) * (lines[level-1][a].w - ballx);
+var xDist = (lines[level-1][a].w - ballx) - (lines[level-1][a].w / lines[level-1][a].h) * (lines[level-1][a].h - bally);
+var dist = Math.min(Math.abs(Math.cos(Math.atan(lines[level-1][a].h / lines[level-1][a].w)) * yDist), Math.abs(Math.cos(Math.atan(lines[level-1][a].w / lines[level-1][a].h)) * xDist));
+var xOff = Math.sin(Math.atan(lines[level-1][a].h / lines[level-1][a].w)) * dist * Math.abs(xDist) / -xDist * Math.abs(lines[level-1][a].slope) / lines[level-1][a].slope;
+if (xOff.toString() == "NaN") xOff = 0;
+var yOff = Math.cos(Math.atan(lines[level-1][a].h / lines[level-1][a].w)) * dist * Math.abs(yDist) / -yDist;
+if (yOff.toString() == "NaN") yOff = 0;
+var lineX = b.x + xOff;
+var lineY = b.y + yOff;
+if (Math.abs(dist) <= b.r && lineX <= Math.max(lines[level-1][a].x1, lines[level-1][a].x2)+1 && lineX >= Math.min(lines[level-1][a].x1, lines[level-1][a].x2)-1 && lineY <= Math.max(lines[level-1][a].y1, lines[level-1][a].y2)+1 && lineY >= Math.min(lines[level-1][a].y1, lines[level-1][a].y2)-1) {
+var newV = getBallCollision(b, {vx:0, vy:0, m:1, x:lineX, y:lineY, r:1});
+b.vx = newV.ball1.vx;
+b.vy = newV.ball1.vy;
+b.x += b.vx;
+b.y += b.vy;
+}
+else if (Math.sqrt(Math.pow(b.x - lines[level-1][a].x1, 2) + Math.pow(b.y - lines[level-1][a].y1, 2)) < b.r) {
+var newV = getBallCollision(b, {vx:0, vy:0, m:1, x:lines[level-1][a].x1, y:lines[level-1][a].y1, r:1});
+b.vx = newV.ball1.vx;
+b.vy = newV.ball1.vy;
+b.x += b.vx*2;
+b.y += b.vy*2;
+}
+else if (Math.sqrt(Math.pow(b.x - lines[level-1][a].x2, 2) + Math.pow(b.y - lines[level-1][a].y2, 2)) < b.r) {
+var newV = getBallCollision(b, {vx:0, vy:0, m:1, x:lines[level-1][a].x2, y:lines[level-1][a].y2, r:1});
+b.vx = newV.ball1.vx;
+b.vy = newV.ball1.vy;
+b.x += b.vx*2;
+b.y += b.vy*2;
+}
+}
+
+b.x += b.vx;
+b.y += b.vy;
+b.vx *= 0.983;
+b.vy *= 0.983;
+if (Math.abs(b.vx) + Math.abs(b.vy) < 0.12) {
+b.vx = 0;
+b.vy = 0;
+}
+if (Math.sqrt(Math.pow(b.x - hole.x, 2) + Math.pow(b.y - hole.y, 2)) <= b.r*1.1 && Math.sqrt(b.vx*b.vx + b.vy*b.vy) <= 0.7) {
+upLevel();
+}
+}
+
+function drawLevel() {
+if (lines[level-1]) {
+cvs2.clearRect(0, 0, cvswall2.width, cvswall2.height);
+cvs2.fillStyle = "grey";
+cvs2.strokeStyle = "black";
+for (var a = 0; a < lines[level-1].length; a ++) {
+cvs2.beginPath();
+cvs2.moveTo(lines[level-1][a].x1, lines[level-1][a].y1);
+cvs2.lineTo(lines[level-1][a].x2, lines[level-1][a].y2);
+cvs2.stroke();
+cvs2.closePath();
+lines[level-1][a].w = lines[level-1][a].x1 - lines[level-1][a].x2;
+lines[level-1][a].h = lines[level-1][a].y1 - lines[level-1][a].y2;
+lines[level-1][a].slope = (lines[level-1][a].y1 - lines[level-1][a].y2) / (lines[level-1][a].x1 - lines[level-1][a].x2);
+if (lines[level-1][a].slope.toString() == "Infinity") lines[level-1][a].slope = 1;
+if (lines[level-1][a].slope.toString() == "-Infinity") lines[level-1][a].slope = -1;
+}
+cvs2.beginPath();
+cvs2.arc(hole.x, hole.y, hole.r, 0, Math.PI*2, true);
+cvs2.fill();
+cvs2.closePath();
+}
+else {
+alert("You beat all the levels in " + allHits + " hits!");
+level = 1;
+allHits = 0;
+drawLevel();
+}
+}
+
+function getBallCollision(b1, b2) {
+var dx = b1.x - b2.x;
+var dy = b1.y - b2.y;
+var dist = Math.sqrt(dx*dx + dy*dy);
+if (Math.abs(dy) + Math.abs(dx) != 0 && dist < b1.r + b2.r) {
+var colAng = Math.atan2(dy, dx);
+var sp1 = Math.sqrt(b1.vx*b1.vx + b1.vy*b1.vy);
+var sp2 = Math.sqrt(b2.vx*b2.vx + b2.vy*b2.vy);
+var dir1 = Math.atan2(b1.vy, b1.vx);
+var dir2 = Math.atan2(b2.vy, b2.vx);
+var vx1 = sp1 * Math.cos(dir1 - colAng);
+var vy1 = sp1 * Math.sin(dir1 - colAng);
+var vx2 = sp2 * Math.cos(dir2 - colAng);
+var vy2 = sp2 * Math.sin(dir2 - colAng);
+var fvx1 = ((b1.m - b2.m) * vx1 + (2 * b2.m) * vx2) / (b1.m + b2.m);
+var fvx2 = ((2 * b1.m) * vx1 + (b2.m - b1.m) * vx2) / (b1.m + b2.m);
+var fvy1 = vy1;
+var fvy2 = vy2;
+b1.vx = Math.cos(colAng) * fvx1 + Math.cos(colAng + Math.PI/2) * fvy1;
+b1.vy = Math.sin(colAng) * fvx1 + Math.sin(colAng + Math.PI/2) * fvy1;
+b2.vx = Math.cos(colAng) * fvx2 + Math.cos(colAng + Math.PI/2) * fvy2;
+b2.vy = Math.sin(colAng) * fvx2 + Math.sin(colAng + Math.PI/2) * fvy2;
+return { ball1:b1, ball2:b2 }
+}
+else return false;
+}
+
+</script>
+<style>
+body {
+padding:0;
+margin:0;
+}
+canvas {
+position:absolute;
+top:0;
+left:0;
+}
+
+</style>
+</head>
+<body onLoad="start();">
+<canvas id="cvs2" width=320 height=357> </canvas>
+<canvas id="cvs" width=320 height=357> </canvas>
+
+</body>
+</html>

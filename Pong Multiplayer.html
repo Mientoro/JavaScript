@@ -1,0 +1,144 @@
+<HTML>
+<head>
+<title>
+Pong!
+</title>
+<script>
+var cvs;
+var cvs1;
+var mx = 0;
+var my = 0;
+var mx2 = 0;
+var started = false;
+var p2score = 0;
+var p1score = 0;
+var my2;
+var p1 = {x:150, y:295, w:70, h:10}
+var p2 = {x:150, y:65, w:50, h:10}
+var ball = {x:70, y:85, xsp:1.25, ysp:4, rad:3}
+var control = setInterval(game,1);
+
+function game() {
+cvs=document.getElementById("canvas").getContext("2d");
+cvs.font="20px marker felt";
+cvs.textAlign = "center";
+cvs.fillStyle = "black";
+if (started) {
+cvs.lineWidth = 2;
+cvs.clearRect(0,0,300,360);
+ballControl();
+paddles();
+cvs.fillRect(0,0,300,50);
+cvs.fillRect(0,310,300,50);
+cvs.fillStyle="white";
+cvs.fillText("PLAYER 1 TOUCH HERE", 150,332);
+cvs.fillText("Score: " + p1score, 150, 355);
+cvs.save();
+cvs.translate(150,180);
+cvs.rotate(Math.PI);
+cvs.translate(-150,-180);
+cvs.fillText("PLAYER 2 TOUCH HERE", 150,332);
+cvs.fillText("Score: " + p2score, 150, 355);
+cvs.restore();
+cvs.fillStyle="black";
+cvs.beginPath();
+cvs.moveTo(0,0);
+cvs.lineTo(300,0);
+cvs.lineTo(300,360);
+cvs.lineTo(0,360);
+cvs.lineTo(0,0);
+cvs.stroke();
+cvs.closePath();
+}
+if (!started) {
+cvs.fillRect(100,150,100,100);
+cvs.fillStyle = "white";
+cvs.fillText("TOUCH", 150, 177);
+cvs.fillText("TO", 150, 207);
+cvs.fillText("PLAY", 150, 237);
+}
+if (mx>100&&mx<200&&my>150&&my<250) started = true;
+}
+
+function ballControl() {
+if (Math.abs(ball.x-p1.x)<p1.w/2 && Math.abs((ball.y+p1.h/2+ball.rad)-p1.y)<4) {
+ball.xsp += (ball.x-p1.x)/5.5;
+ball.ysp *= -1;
+}
+if (Math.abs(ball.x-p2.x)<p2.w/2 && Math.abs((ball.y-p2.h/2-ball.rad)-p2.y)<4) {
+ball.xsp += (ball.x-p2.x)/5.5;
+ball.ysp *= -1;
+}
+if (ball.x<2+ball.rad||ball.x>298-ball.rad) ball.xsp *= -1;
+ball.x += ball.xsp;
+ball.y += ball.ysp;
+cvs.beginPath();
+cvs.arc(ball.x, ball.y, ball.rad, 0, 7);
+cvs.fill();
+cvs.closePath();
+if (ball.y < 50) {
+p1score ++;
+ball.x = 70;
+ball.y = 275;
+ball.xsp = 1.5;
+ball.ysp = -4;
+}
+if (ball.y > 310) {
+p2score ++;
+ball.x = 70;
+ball.y = 85;
+ball.xsp = 1.5;
+ball.ysp = 4;
+}
+}
+function paddles() {
+if (mx!=0) {
+if (my < 60) p2.x = mx;
+else if (my2 < 60) p2.x = mx2;
+if (my > 300) p1.x = mx;
+else if (my2 > 300) p1.x = mx2;
+if (p1.x<p1.w/2) p1.x = p1.w/2+2;
+if (p2.x<p2.w/2) p2.x = p2.w/2+2;
+if (p1.x>300-p1.w/2) p1.x = 300-(p1.w/2+2);
+if (p2.x>300-p2.w/2) p2.x = 300-(p2.w/2+2);
+}
+cvs.fillRect(p1.x-p1.w/2, p1.y-p1.h/2, p1.w, p1.h);
+cvs.fillRect(p2.x-p2.w/2, p2.y-p2.h/2, p2.w, p2.h);
+}
+
+function start() {
+cvs1 = document.getElementById("canvas");
+cvs1.addEventListener('touchstart', getTouch, false);
+cvs1.addEventListener('touchmove', getTouch, false);
+}
+function getTouch(e) {
+if (e.touches) {
+var p = getCoords(e.touches[0]);
+mx = p.x;
+my = p.y;
+if (e.touches.length==2) {
+var p2 = getCoords(e.touches[1]);
+mx2 = p2.x;
+my2 = p2.y;
+}
+}
+e.preventDefault();
+}
+function getCoords(e) {
+if (e.offsetX) {
+return { x: e.offsetX, y: e.offsetY };
+}
+else if (e.layerX) {
+return { x: e.layerX, y: e.layerY };
+}
+else {
+return { x: e.pageX - cvs1.offsetLeft, y: e.pageY - cvs1.offsetTop };
+}
+}
+</script>
+</head>
+<body onLoad="start();">
+<canvas id="canvas" width="300" height="360">
+</canvas>
+</body>
+</HTML>

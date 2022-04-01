@@ -1,0 +1,420 @@
+<HTML>
+<head>
+<title>
+Run Game
+</title>
+<script>
+var my = 0;
+var mx = 0;
+var mx2 = 0;
+var my2 = 0;
+var score = 0;
+var highscore = 0;
+var repeat = 9;
+var speed = 3.5;
+var count = 0;
+var doneTouch = false;
+var jump = false;
+var jumping = false;
+var slide = false;
+var slidecount = 0;
+var hit = false;
+var isTouching = false;
+var paused = false;
+var gameOn = true;
+var gameOver = false;
+var endCount = 0;
+var cvs;
+var cvs1;
+var choice;
+var chNum = 0;
+var man = [200, 300, 0, 0, 6, 48];
+var objs = [["block", 160, -40, 40, 10]];
+var drawInt = setInterval(draw, 1);
+
+function draw() {
+cvs=document.getElementById('canvas').getContext('2d');
+if (gameOn&&!gameOver&&!paused) {
+count ++;
+if (score==5||score==10||score==15||score==20||score==30||score==40||score==50||score==65||score==80) {
+score ++;
+speed += 1.1;
+repeat ++;
+repeat ++;
+repeat ++;
+}
+cvs.clearRect(0,0,300,360);
+cvs.font = "20px Arial";
+cvs.fillStyle = "black";
+cvs.strokeStyle = "black";
+cvs.lineWidth=6;
+cvs.moveTo(0,0);
+cvs.lineTo(300,0);
+cvs.lineTo(300,360);
+cvs.lineTo(0,360);
+cvs.lineTo(0,0);
+cvs.stroke();
+cvs.closePath();
+buttons();
+objDraw();
+drawMan();
+cvs.font = "bold 20px Arial";
+cvs.fillStyle = "black";
+cvs.strokeStyle = "white";
+cvs.lineWidth = 1;
+cvs.save();
+cvs.translate(25,65);
+cvs.rotate(Math.PI*1.5);
+if (score>highscore) {
+highscore = score;
+}
+cvs.fillText("Score: " + score,-50,0);
+cvs.strokeText("Score: " + score,-50,0);
+cvs.fillText("High Score: " + highscore,-100,25);
+cvs.strokeText("High Score: " + highscore,-100,25);
+cvs.restore();
+}
+else {
+gameCheck();
+}
+}
+
+function drawMan(cvs) {
+cvs=document.getElementById('canvas').getContext('2d');
+if(!gameOver) {
+if (jump) {
+if (!jumping&&mx<285&&mx>215&&my<85&&my>15) {
+jumping = true;
+man[2] = -1.25;
+man[3] = 0.008;
+}
+}
+for (var k = 0; k<repeat; k ++) {
+man[0] += man[2];
+man[2] += man[3];
+}
+if (man[0]>198) {
+man[0] = 200;
+man[2] = 0;
+man[3] = 0;
+if (jumping) {
+mx = 0;
+my = 0;
+}
+jump = false;
+jumping = false;
+}
+if (slide) {
+if (slidecount<110/speed) {
+slidecount++;
+mx = 0;
+my = 0;
+cvs.strokeStyle="rgb(0,220,0)";
+cvs.lineWidth=4;
+cvs.beginPath();
+cvs.moveTo(man[0], man[1]-15);
+cvs.lineTo(man[0] - 7, man[1] + 5);
+cvs.moveTo(man[0] -7, man[1] + 5);
+cvs.lineTo(man[0] - 14, man[1]-15);
+cvs.moveTo(man[0] - 7, man[1] + 5);
+cvs.lineTo(man[0] - 7, man[1] + 25);
+cvs.arc(man[0] - 7, man[1] + 25, 5, 0, Math.PI*2);
+cvs.moveTo(man[0] - 7, man[1] + 15);
+cvs.lineTo(man[0] - 18, man[1] + 30);
+cvs.moveTo(man[0] - 7, man[1] + 15);
+cvs.lineTo(man[0] + 4, man[1] + 30);
+cvs.stroke();
+cvs.closePath();
+}
+if(slidecount >= 110/speed) {
+slidecount = 0;
+slide = false;
+}
+}
+if (!slide) {
+cvs.strokeStyle="rgb(0,220,0)";
+cvs.lineWidth=4;
+cvs.beginPath();
+cvs.moveTo(man[0], man[1]+7);
+cvs.lineTo(man[0] - 20, man[1]);
+cvs.moveTo(man[0], man[1]-7);
+cvs.lineTo(man[0] - 20, man[1]);
+cvs.moveTo(man[0]-20, man[1]);
+cvs.lineTo(man[0]-40, man[1]);
+cvs.moveTo(man[0]-40, man[1]);
+cvs.arc(man[0]-45, man[1], 5, 0, Math.PI*2);
+cvs.moveTo(man[0]-32, man[1]-15);
+cvs.lineTo(man[0]-32, man[1]+15);
+cvs.stroke();
+cvs.closePath();
+for (var z = 0; z<objs.length; z ++) {
+if ((objs[z][0] == "block"||objs[z][0]=="spikes")&&man[0]<=objs[z][1]+objs[z][3]&&man[0]>=objs[z][1]+2&&man[1]-10<=objs[z][2]+objs[z][4]&&man[1]>=objs[z][2]) {
+gameOver = true;
+}
+if (objs[z][0]=="tunnel"&& ((man[0]>=objs[z][1]+2&&man[0]<=objs[z][1]+40&&man[1]-10<objs[z][2]+objs[z][4]&&man[1]>objs[z][2])||(man[0]-55<objs[z][1]-85&&man[1]-10<objs[z][2]+objs[z][4]&&man[1]>objs[z][2]))) {
+gameOver = true;
+}
+}
+}
+}
+}
+
+function objDraw() {
+cvs=document.getElementById('canvas').getContext('2d');
+if (count > 280/speed) {
+count = 0;
+chNum = Math.floor(Math.random()*4) + 1;
+switch(chNum) {
+case 1:
+choice = "block";
+break;
+case 2:
+choice = "birds";
+break;
+case 3:
+choice = "tunnel";
+break;
+case 4:
+choice= "spikes";
+break;
+default:
+choice = "nothing";
+break;
+}
+if (choice=="tunnel") {
+objs.push(["tunnel", 160, -30, 75, 15]);
+}
+else if (choice=="spikes") {
+objs.push(["spikes", 175, -40, 25, 40]);
+}
+else if (choice=="birds") {
+objs.push(["birds", 170, -40, 25, 40]);
+}
+else {
+objs.push(["block", 160, -30, 40, 10 + Math.random()*20]);
+}
+}
+for(var i = 0; i<objs.length; i ++) {
+objs[i][2] += speed;
+if (objs[i][0]=="spikes") {
+cvs.strokeStyle="black";
+cvs.lineWidth=1;
+cvs.fillStyle="silver";
+cvs.beginPath();
+cvs.moveTo(objs[i][1]+objs[i][3], objs[i][2]);
+cvs.lineTo(objs[i][1], objs[i][2]+4);
+cvs.lineTo(objs[i][1]+objs[i][3], objs[i][2]+8);
+cvs.lineTo(objs[i][1], objs[i][2]+12);
+cvs.lineTo(objs[i][1]+objs[i][3], objs[i][2]+16);
+cvs.lineTo(objs[i][1], objs[i][2]+20);
+cvs.lineTo(objs[i][1]+objs[i][3], objs[i][2]+24);
+cvs.lineTo(objs[i][1], objs[i][2]+28);
+cvs.lineTo(objs[i][1]+objs[i][3], objs[i][2]+32);
+cvs.lineTo(objs[i][1], objs[i][2]+36);
+cvs.lineTo(objs[i][1]+objs[i][3], objs[i][2]+40);
+cvs.fill();
+cvs.closePath();
+cvs.stroke();
+}
+if (objs[i][0] == "block") {
+cvs.fillStyle="brown";
+cvs.strokeStyle="black";
+cvs.lineWidth=1;
+cvs.fillRect(objs[i][1], objs[i][2], objs[i][3], objs[i][4]);
+cvs.strokeRect(objs[i][1], objs[i][2], objs[i][3], objs[i][4]);
+}
+if(objs[i][0] == "tunnel") {
+cvs.fillStyle="brown";
+cvs.strokeStyle="black";
+cvs.lineWidth=1;
+cvs.fillRect(objs[i][1], objs[i][2], 40, objs[i][4]);
+cvs.strokeRect(objs[i][1], objs[i][2], 40, objs[i][4]);
+cvs.fillRect(0, objs[i][2], 75, objs[i][4]);
+cvs.strokeRect(0, objs[i][2], 75, objs[i][4]);
+}
+if (objs[i][0]=="birds") {
+cvs.strokeStyle="black";
+cvs.lineWidth=1;
+cvs.fillStyle="grey";
+cvs.beginPath();
+cvs.moveTo(objs[i][1], objs[i][2]);
+cvs.lineTo(objs[i][1], objs[i][2]+20);
+cvs.lineTo(objs[i][1]-3, objs[i][2] + 25);
+cvs.lineTo(objs[i][1]-6, objs[i][2] + 20);
+cvs.stroke();
+cvs.fill();
+cvs.closePath();
+}
+if (objs[i][2] > 360) {
+score ++;
+objs.splice(i, i+1);
+}
+}
+}
+
+function buttons() {
+cvs=document.getElementById('canvas').getContext('2d');
+cvs.fillStyle = "black";
+cvs.strokeStyle = "rgb(0,0,230)";
+cvs.lineWidth = 2;
+cvs.fillRect(200,0,100,360);
+cvs.fillStyle = "aqua";
+cvs.fillRect(215,15,70,70);
+cvs.strokeRect(215,15,70,70);
+cvs.fillRect(215,275,70,70);
+cvs.strokeRect(215,275,70,70);
+cvs.fillStyle = "rgb(255,40,40)";
+cvs.strokeStyle = "rgb(0,0,230)";
+cvs.fillRect(215,190,70,70);
+cvs.strokeRect(215,190,70,70);
+cvs.fillStyle = "black";
+cvs.font = "20px Arial";
+cvs.save();
+cvs.translate(215,15);
+cvs.rotate(Math.PI*1.5);
+cvs.fillText("JUMP",-62,40);
+cvs.restore();
+cvs.save();
+cvs.translate(215,275);
+cvs.rotate(Math.PI*1.5);
+cvs.fillText("DIVE",-59,40);
+cvs.restore();
+cvs.save();
+cvs.translate(215,190);
+cvs.rotate(Math.PI*1.5);
+cvs.fillText("HIT",-50,40);
+cvs.restore();
+if(mx>215&&mx<285&&my>15&&my<85) {
+if (man[0]==200) {
+slide = false;
+slidecount = 0;
+jump = true;
+}
+}
+if (mx>215&&mx<285&&my>275&&my<345){
+slide = true;
+}
+if (mx>215&&mx<285&&my>190&&my<260){
+gameOver = true;
+}
+}
+
+function gameCheck() {
+endCount = 0;
+var ended = setInterval(gameEnd, 700);
+}
+function gameEnd() {
+cvs=document.getElementById('canvas').getContext('2d');
+cvs.fillStyle = "red";
+cvs.strokeStyle = "black";
+cvs.font = "bold 50px Arial";
+endCount ++;
+switch (endCount) {
+case 2:
+cvs.save();
+cvs.translate(75, 335);
+cvs.rotate(Math.PI*1.5);
+cvs.fillText("GAME",0,0);
+cvs.strokeText("GAME",0,0);
+cvs.restore();
+break;
+case 8:
+cvs.save();
+cvs.translate(75, 165);
+cvs.rotate(Math.PI*1.5);
+cvs.fillText("OVER",0,0);
+cvs.strokeText("OVER",0,0);
+cvs.restore();
+break;
+case 14:
+cvs.fillStyle = "black";
+cvs.strokeStyle = "white";
+cvs.font = "18px Arial";
+cvs.save();
+cvs.translate(105, 340);
+cvs.rotate(Math.PI*1.5);
+cvs.strokeText("TOUCH ANYWHERE TO PLAY AGAIN",0,0);
+cvs.fillText("TOUCH ANYWHERE TO PLAY AGAIN",0,0);
+cvs.restore();
+}
+}
+
+function start() {
+cvs1 = document.getElementById("canvas");
+cvs1.addEventListener('touchstart', getTouch, false);
+cvs1.addEventListener('touchmove', getTouch, false);
+cvs1.addEventListener('touchend', touchEnded, false);
+}
+function touchEnded() {
+if (endCount > 14) {
+if ((gameOver)&&(doneTouch)||gameOver&&!isTouching) {
+my = 0;
+mx = 0;
+mx2 = 0;
+my2 = 0;
+score = 0;
+repeat = 9;
+speed = 3.5;
+count = 0;
+doneTouch = false;
+jump = false;
+jumping = false;
+slide = false;
+slidecount = 0;
+hit = false;
+isTouching = false;
+paused = false;
+gameOn = true;
+gameOver = false;
+endCount = 0;
+choice = "";
+chNum = 0;
+man = [200, 300, 0, 0, 6, 48];
+objs = [["block", 160, -40, 40, 10]];
+clearInterval(ended);
+}
+else if (gameOver&&isTouching) {
+doneTouch = true;
+}
+}
+isTouching = false;
+}
+function getTouch(e) {
+if (e.touches) {
+e.preventDefault();
+for (var i = 1; i <= e.touches.length; i++) {
+if (i<2) {
+var p = getCoords(e.touches[i - 1]);
+mx = p.x;
+my = p.y;
+}
+else if (i<3) {
+var p = getCoords(e.touches[i - 2]);
+var p2 = getCoords(e.touches[i - 1]);
+mx = p.x;
+my = p.y;
+mx2 = p2.x;
+my2 = p2.y;
+}
+}
+}
+e.preventDefault();
+}
+function getCoords(e) {
+if (e.offsetX) {
+return { x: e.offsetX, y: e.offsetY };
+}
+else if (e.layerX) {
+return { x: e.layerX, y: e.layerY };
+}
+else {
+return { x: e.pageX - cvs1.offsetLeft, y: e.pageY - cvs1.offsetTop };
+}
+}
+</script>
+</head>
+<body onLoad="start();">
+<canvas id="canvas" width="300" height="360">
+</canvas>
+</body>
+</HTML>

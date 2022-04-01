@@ -1,0 +1,1238 @@
+<html>
+<head>
+<title>Invasion</title>
+<script>
+var bspeed = 1.6;
+
+//  x: the x coordinate of the origin of the angle
+//  y: the y coordinate of the origin of the angle
+//  coordX: the x coordinate of the point from which the angle is calculated
+//  coordY: the y coordinate of the point from which the angle is calculated
+
+
+function getAngle(x, y, coordX, coordY) {
+var a = coordX - x;
+var o = y - coordY;
+var h = Math.sqrt(a*a + o*o);
+var ang = Math.asin(o / h);
+var ySpeed = -Math.asin(o / h);
+var xSpeed = Math.asin(a / h);
+if (o >= 0 && a < 0) ang = Math.PI - ang;
+else if (o < 0 && a < 0) ang = -Math.PI - ang;
+return { angle:ang, xSp:xSpeed, ySp:ySpeed, dist:h };
+}
+
+
+
+
+//  myCanvas: the canvas element object's 2D context
+//  x: the x coordinate of the center of the rectangle or an object with properties x,y,w,h,r,(stroke,fill these are not necessary)
+//  y: the y coordinate of the center of the rectangle, or if x is an object this variable should be the context object of a canvas object
+//  w: the width of the rectangle
+//  h: the height of the rectangle
+//  r: the radius of the corner curves
+//  stroke: a boolean variable, if true, the rectangle will have a border
+//  fill: a boolean variable, if true, the rectangle will have a color fill
+// myCanvas: the context object of a canvas object
+
+
+function roundRect(x, y, w, h, r, stroke, fill, myCanvas) {
+if (typeof(x) == "object") {
+myCanvas = y;
+y = x.y;
+if (x.w) w = x.w;
+else if (x.width) w = x.width;
+if (x.h) h = x.h;
+else if (x.height) h = x.height;
+if (x.r) r = x.r;
+else if (x.radius) r = x.radius;
+stroke = x.stroke;
+fill = x.fill;
+x = x.x;
+}
+if (!myCanvas) {
+myCanvas = document.getElementsByTagName("canvas")[0].getContext("2d");
+}
+myCanvas.save();
+myCanvas.beginPath();
+myCanvas.moveTo(x - w / 2, y + h / 2 - r);
+myCanvas.lineTo(x - w / 2, y - h / 2 + r);
+myCanvas.arc(x - w / 2 + r, y - h / 2 + r, r, -Math.PI, -Math.PI/2, false);
+myCanvas.lineTo(x + w / 2 - r, y - h / 2);
+myCanvas.arc(x + w / 2 - r, y - h / 2 + r, r, -Math.PI / 2, 0, false);
+myCanvas.lineTo(x + w / 2, y + h / 2 - r);
+myCanvas.arc(x + w / 2 - r, y + h / 2 - r, r, 0, Math.PI / 2, false);
+myCanvas.lineTo(x - w / 2 + r, y + h / 2);
+myCanvas.arc(x - w / 2 + r, y + h / 2 - r, r, Math.PI / 2, Math.PI, false);
+if (fill) {
+myCanvas.fillStyle = fill;
+myCanvas.fill();
+}
+if (stroke) {
+myCanvas.strokeStyle = stroke;
+myCanvas.stroke();
+}
+myCanvas.closePath();
+myCanvas.restore();
+}
+
+
+
+//call getCoords() with a "touchstart", "touchmove", or "touchend" event object
+
+//returns all touch coordinates on the screen in an array, each index is an object with 'x' and 'y' properties
+
+
+function getCoords(e) {
+var allTouches = [];
+if (e.touches) {
+for (var i = 0; i < e.touches.length; i++) {
+allTouches.push(getTouchCoords(e.touches[i]));
+}
+}
+e.preventDefault();
+return allTouches;
+}
+
+function getTouchCoords(e) {
+if (e.offsetX) {
+return { x: e.offsetX, y: e.offsetY };
+}
+else if (e.layerX) {
+return { x: e.layerX, y: e.layerY };
+}
+else {
+return { x: e.pageX, y: e.pageY };
+}
+}
+
+function drawTank(x, y, w, h, angle, cvs123) {
+if (typeof(x) == "object") {
+cvs123 = y;
+y = x.y;
+if (x.w) w = x.w;
+else if (x.width) w = x.width;
+if (x.h) h = x.h;
+else if (x.height) h = x.height;
+if (x.angle) angle = x.angle;
+else angle = 0;
+x = x.x;
+}
+if (!cvs123) {
+cvs123 = document.getElementsByTagName("canvas")[0].getContext("2d");
+}
+cvs123.save();
+cvs123.translate(x, y);
+cvs123.rotate(-angle);
+cvs123.lineWidth = w / 50;
+cvs123.strokeStyle = "black";
+cvs123.fillStyle = "maroon";
+cvs123.beginPath();
+cvs123.arc(-h/2 + w*0.15, -w*0.35, w*0.15, Math.PI/2, -Math.PI/2, false);
+cvs123.arc(h/2 - w*0.15, -w*0.35, w*0.15, -Math.PI/2, Math.PI/2, false);
+cvs123.moveTo(h/2 - w*0.15, -w*0.2);
+cvs123.lineTo(-h/2 + w*0.15, -w*0.2);
+cvs123.fill();
+cvs123.stroke();
+cvs123.closePath();
+cvs123.beginPath();
+cvs123.arc(-h/2 + w*0.15, w*0.35, w*0.15, Math.PI/2, -Math.PI/2, false);
+cvs123.arc(h/2 - w*0.15, w*0.35, w*0.15, -Math.PI/2, Math.PI/2, false);
+cvs123.moveTo(-h/2 + w*0.15, w/2);
+cvs123.lineTo(h/2 - w*0.15, w/2);
+cvs123.fill();
+cvs123.stroke();
+cvs123.closePath();
+cvs123.lineWidth = w / 25;
+cvs123.globalCompositeOperation='source-atop';
+cvs123.beginPath();
+cvs123.moveTo(-h*0.45, -w/2);
+cvs123.lineTo(-h*0.45, w/2);
+cvs123.moveTo(-h*0.35, -w/2);
+cvs123.lineTo(-h*0.35, w/2)
+cvs123.moveTo(-h*0.25, -w/2);
+cvs123.lineTo(-h*0.25, w/2);
+cvs123.moveTo(-h*0.15, -w/2);
+cvs123.lineTo(-h*0.15, w/2);
+cvs123.moveTo(-h*0.05, -w/2);
+cvs123.lineTo(-h*0.05, w/2);
+cvs123.moveTo(h*0.45, -w/2);
+cvs123.lineTo(h*0.45, w/2);
+cvs123.moveTo(h*0.35, -w/2);
+cvs123.lineTo(h*0.35, w/2)
+cvs123.moveTo(h*0.25, -w/2);
+cvs123.lineTo(h*0.25, w/2);
+cvs123.moveTo(h*0.15, -w/2);
+cvs123.lineTo(h*0.15, w/2);
+cvs123.moveTo(h*0.05, -w/2);
+cvs123.lineTo(h*0.05, w/2);
+cvs123.stroke();
+cvs123.closePath();
+cvs123.globalCompositeOperation='source-over';
+cvs123.fillStyle = "rgb(50,130,0)";
+roundRect(0, 0, h*.7, w*.8, w/5, true, true, cvs123);
+cvs123.strokeStyle = "black";
+cvs123.lineCap = "round";
+cvs123.beginPath();
+cvs123.arc(-h/7.5, 0, Math.min(w,h)/7, 0, Math.PI * 2, false);
+cvs123.moveTo(-h/7.5, -Math.min(w,h)/7);
+cvs123.lineTo(-h/7.5, Math.min(w,h)/7);
+cvs123.moveTo(-h/7.5 - Math.min(w,h)/7, 0);
+cvs123.lineTo(-h/7.5 + Math.min(w,h)/7, 0);
+cvs123.stroke();
+cvs123.closePath();
+cvs123.lineWidth = w / 10;
+cvs123.beginPath();
+cvs123.moveTo(h/8,0);
+cvs123.lineTo(h/2,0);
+cvs123.stroke();
+cvs123.closePath();
+cvs123.restore();
+}
+
+function drawCar(x, y, w, h, angle, cvs123) {
+if (typeof(x) == "object") {
+cvs123 = y;
+y = x.y;
+if (x.w) w = x.w;
+else if (x.width) w = x.width;
+if (x.h) h = x.h;
+else if (x.height) h = x.height;
+if (x.angle) angle = x.angle;
+else angle = 0;
+x = x.x;
+}
+if (!cvs123) {
+cvs123 = document.getElementsByTagName("canvas")[0].getContext("2d");
+}
+cvs123.save();
+cvs123.translate(x, y);
+cvs123.lineWidth = w/60;
+cvs123.rotate(-angle);
+cvs123.strokeStyle = "black";
+cvs123.fillStyle = "black";
+// wheels
+cvs123.fillRect(h*0.15, -w/2, h*0.20, w);
+cvs123.fillRect(-h*0.38, -w/2, h*0.20, w);
+cvs123.fillStyle = "silver";
+// bumper
+roundRect(-h*0.4, 0, h*0.2, w*0.8 - w/5, w/20, true, true, cvs123);
+// headlights
+cvs123.fillStyle = "yellow";
+cvs123.beginPath();
+cvs123.arc(h/2 - h*0.07, -w/5, h*0.07, Math.PI*2, 0, false);
+cvs123.fill();
+cvs123.stroke();
+cvs123.closePath();
+cvs123.beginPath();
+cvs123.arc(h/2 - h*0.07, w/5, h*0.07, Math.PI*2, 0, false);
+cvs123.fill();
+cvs123.stroke();
+cvs123.closePath();
+// car body
+cvs123.lineWidth = w / 50;
+cvs123.fillStyle = "red";
+roundRect(-h*0.01, 0, h*0.93, w*0.8, w/10, true, true, cvs123);
+roundRect(h/3.5, 0, h*0.25, w*0.65, w/10, true, true, cvs123);
+cvs123.fillRect(0, -w/3.2, h/4, w/1.6);
+// windows
+cvs123.fillStyle = "rgb(70,170,255)";
+cvs123.beginPath();
+// front window
+cvs123.moveTo(h/7, -w/3.24);
+cvs123.lineTo(h/20, -w/5);
+cvs123.lineTo(h/20, w/5);
+cvs123.lineTo(h/7, w/3.24);
+cvs123.lineTo(h/7, -w/3.24);
+// left window
+cvs123.lineTo(-h/3,-w/3.24);
+cvs123.lineTo(-h/4, -w/5);
+cvs123.lineTo(h/20, -w/5);
+// back window
+cvs123.moveTo(-h/3,-w/3.24);
+cvs123.lineTo(-h/3,w/3.24);
+cvs123.lineTo(-h/4, w/5);
+cvs123.lineTo(-h/4, -w/5);
+// right window
+cvs123.moveTo(-h/4, w/5);
+cvs123.lineTo(h/20, w/5);
+cvs123.lineTo(h/7, w/3.24);
+cvs123.lineTo(-h/3,w/3.24);
+cvs123.fill();
+cvs123.stroke();
+cvs123.closePath();
+cvs123.restore();
+}
+
+
+
+var cvs;
+var game = {};
+
+function start() {
+cvs = document.getElementById("cvs");
+game.w = window.innerWidth;
+game.h = window.innerHeight;
+cvs.height = game.h;
+cvs.width = game.w;
+game.cvs = cvs.getContext("2d");
+game.startUp = startUp;
+game.startGame = startGame;
+game.drawGame = drawGame;
+game.endGame = endGame;
+game.beginBtn = {};
+game.infoBtn = {};
+game.coords = [];
+game.showInfo = showInfo;
+game.state = null;
+game.enemies = [];
+game.enemyCount = 5000;
+game.enemyTrack = 5000;
+game.bullets = [];
+game.bonuses = [];
+game.bonusCount = 500;
+game.bonusTrack = 350;
+game.drawButton = drawButton;
+game.bonuses = [];
+game.score = 0;
+game.highscore = 0;
+game.player = new Player();
+game.backupPlayer = new Player();
+game.trackpad = new Trackpad();
+game.fireBtn = new FireBtn();
+game.touchEnd = touchEnds;
+cvs.addEventListener("touchstart", touch, false);
+cvs.addEventListener("touchmove", touch, false);
+cvs.addEventListener("touchend", game.touchEnd, false);
+game.startUp();
+}
+
+
+function startUp() {
+this.cvs.save();
+var txtSize = Math.round(Math.min(this.w/6, this.h/5.4));
+this.cvs.fillStyle = "red";
+this.cvs.strokeStyle = "black";
+this.cvs.lineWidth = 3;
+this.cvs.font = txtSize + "px Chalkduster";
+this.cvs.textAlign = "center";
+this.cvs.textBaseline = "middle";
+this.cvs.strokeText("INVASION", Math.round(this.w/2+1), Math.round(this.h/4.5+1));
+this.cvs.fillText("INVASION", Math.round(this.w/2), Math.round(this.h/4.5));
+this.beginBtn.w = Math.round(txtSize * 2.5);
+this.beginBtn.h = txtSize;
+this.beginBtn.r = Math.round(txtSize / 4);
+this.beginBtn.fill = "rgb(0,255,0)";
+this.beginBtn.stroke = "black";
+this.beginBtn.x = Math.round(this.w/2);
+this.beginBtn.y = Math.round(this.h/2.1);
+roundRect(this.beginBtn, this.cvs);
+this.cvs.font = Math.round(txtSize * 0.6) + "px Chalkduster";
+this.cvs.strokeText("PLAY", this.beginBtn.x, this.beginBtn.y+1);
+this.cvs.fillText("PLAY", this.beginBtn.x, this.beginBtn.y);
+this.infoBtn.x = Math.round(this.w/2);
+this.infoBtn.y = Math.round(this.h*0.7);
+this.infoBtn.w = Math.round(txtSize * 5.5);
+this.infoBtn.h = txtSize;
+this.infoBtn.r = Math.round(txtSize / 4);
+this.infoBtn.fill = "rgb(0,255,0)";
+this.infoBtn.stroke = "black";
+roundRect(this.infoBtn, this.cvs);
+this.cvs.strokeText("HOW TO PLAY", this.infoBtn.x, this.infoBtn.y+1);
+this.cvs.fillText("HOW TO PLAY", this.infoBtn.x, this.infoBtn.y);
+this.cvs.restore();
+this.state = "home";
+}
+
+
+function touch(e) {
+game.coords = getCoords(e);
+for (var a = 0; a < game.coords.length; a ++) {
+if (Math.sqrt(Math.pow(game.coords[a].x - game.trackpad.x, 2) + Math.pow(game.coords[a].y - game.trackpad.y, 2)) < game.trackpad.r) {
+var newSp = getAngle(game.trackpad.x, game.trackpad.y, game.coords[a].x, game.coords[a].y);
+game.player.angle = newSp.angle;
+if (game.player.angle != 0 && Math.abs(game.player.angle) != Math.PI/2) {
+game.player.xSp = newSp.xSp * newSp.dist / 8;
+game.player.ySp = newSp.ySp * newSp.dist / 8;
+}
+}
+}
+}
+
+
+function touchEnds() {
+if (game.state == "ingame") {
+if (Math.sqrt(Math.pow(game.coords[game.coords.length-1].x - game.trackpad.x, 2) + Math.pow(game.coords[game.coords.length-1].y - game.trackpad.y, 2)) < game.trackpad.r) {
+game.player.xSp = 0;
+game.player.ySp = 0;
+}
+else if (Math.abs(game.coords[game.coords.length-1].x - game.player.x) < game.player.w && Math.abs(game.coords[game.coords.length-1].y - game.player.y) < game.player.h) {
+game.player.changeWeapon();
+}
+}
+if (game.state == "home") {
+var clicked = false;
+if (Math.abs(game.coords[game.coords.length-1].x - game.beginBtn.x) < game.beginBtn.w/2 && Math.abs(game.coords[game.coords.length-1].y - game.beginBtn.y) < game.beginBtn.h/2) clicked = "start";
+if (!clicked) {
+if (Math.abs(game.coords[game.coords.length-1].x - game.infoBtn.x) < game.infoBtn.w/2 && Math.abs(game.coords[game.coords.length-1].y - game.infoBtn.y) < game.infoBtn.h/2) {
+clicked = "info";
+}
+}
+if (clicked == "start") game.startGame();
+else if (clicked == "info") game.showInfo();
+}
+if (game.state == "over") start();
+if (game.player.health <= 0 && game.coords.length <=1) game.state = "over";
+game.coords.pop();
+}
+
+
+function startGame() {
+game.state = "ingame";
+game.interval = setInterval(game.drawGame, 30);
+}
+
+
+function drawGame() {
+game.bonusCount --;
+if (game.bonusCount <= 0) {
+game.bonuses.push(new Bonus);
+game.bonusCount = game.bonusTrack;
+}
+game.cvs.clearRect(0, 0, game.w, game.h);
+for (var a = 0; a < game.bullets.length; a ++) {
+game.bullets[a].refresh();
+}
+for (var a = 0; a < game.enemies.length; a ++) {
+game.enemies[a].refresh();
+if (Math.abs(game.enemies[a].x - game.player.x) < game.enemies[a].w/2 + game.player.w/2 && Math.abs(game.enemies[a].y - game.player.y) < game.enemies[a].w/2 + game.player.w/2) game.player.health --;
+for (var b = 0; b < game.bullets.length; b ++) {
+if (Math.abs(game.bullets[b].x - game.enemies[a].x) < game.enemies[a].w/2 + game.bullets[b].r && Math.abs(game.bullets[b].y - game.enemies[a].y) < game.enemies[a].w/2 + game.bullets[b].r) {
+game.enemies.splice(a, 1);
+game.bullets[b].damage --;
+if (game.bullets[b].damage <= 0) {
+game.bullets.splice(b, 1);
+b += game.bullets.length;
+}
+a --;
+game.score += 100;
+}
+else if (game.bullets[b].x < -game.w/4 || game.bullets[b].x > game.w*1.25 || game.bullets[b].y < -game.w/4 || game.bullets[b].y > game.w*1.25) {
+game.bullets.splice(b, 1);
+b --;
+}
+}
+}
+game.enemyCount -= 80;
+if (game.enemyCount <= 0) {
+game.enemyCount = game.enemyTrack;
+game.enemies.push(new Enemy());
+game.enemyTrack = Math.max(game.enemyTrack - 30, 800);
+}
+for (var a = 0; a < game.bonuses.length; a ++) {
+game.bonuses[a].refresh();
+if (Math.abs(game.bonuses[a].x - game.player.x) < game.player.w/2 + game.bonuses[a].r/2 && Math.abs(game.bonuses[a].y - game.player.y) < game.player.w/2 + game.bonuses[a].r/2) {
+game.bonuses[a].redeem();
+game.bonuses.splice(a, 1);
+a --;
+}
+else if (game.bonuses[a].life <= 0) {
+game.bonuses.splice(a, 1);
+a --;
+}
+}
+if (game.player.x > 3 && game.player.y > 3) {
+game.backupPlayer.x = game.player.x;
+game.backupPlayer.y = game.player.y;
+game.backupPlayer.xSp = game.player.xSp;
+game.backupPlayer.ySp = game.player.ySp;
+}
+else {
+game.player.x = game.backupPlayer.x;
+game.player.y = game.backupPlayer.y;
+game.player.xSp = game.backupPlayer.xSp;
+game.player.ySp = game.backupPlayer.ySp;
+}
+game.player.refresh();
+game.drawButton(game.fireBtn);
+game.drawButton(game.trackpad);
+for (var a = 0; a < game.coords.length; a++) {
+if (Math.abs(game.coords[a].x - game.fireBtn.x) < game.fireBtn.w/2 && Math.abs(game.coords[a].y - game.fireBtn.y) < game.fireBtn.h/2) {
+game.fireBtn.click();
+}
+}
+game.cvs.save();
+var txtSize = Math.round(Math.min(game.w/23, game.h/17));
+game.cvs.font = txtSize + "px Arial";
+game.cvs.fillStyle = "black";
+game.cvs.strokeStyle = "white";
+game.cvs.lineWidth = 1;
+game.cvs.textAlign = "left";
+game.cvs.textBaseline = "top";
+game.cvs.strokeText("SCORE: " + game.score, 5, 0);
+game.cvs.fillText("SCORE: " + game.score, 5, 0);
+game.cvs.strokeText("HIGHSCORE: " + game.highscore, 5, txtSize, game.w/2);
+game.cvs.fillText("HIGHSCORE: " + game.highscore, 5, txtSize, game.w/2);
+game.cvs.restore();
+if (game.player.health <= 0) game.endGame();
+}
+
+
+function endGame() {
+clearInterval(game.interval);
+game.cvs.save();
+game.cvs.fillStyle = "red";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 4;
+var txtSize = Math.round(Math.min(this.w/7.5, this.h/4.5));
+game.cvs.font = txtSize + "px Chalkduster";
+game.cvs.textAlign = "center";
+game.cvs.textBaseline = "middle";
+game.cvs.strokeText("GAME OVER", game.w/2+1, game.h/2.2+1);
+game.cvs.fillText("GAME OVER", game.w/2, game.h/2.2);
+game.cvs.font = txtSize/4 + "px Arial"
+game.cvs.fillStyle = "black";
+game.cvs.strokeStyle = "white";
+game.cvs.lineWidth = 1;
+game.cvs.strokeText("TOUCH TO GO TO MAIN SCREEN", game.w/2, game.h/1.7);
+game.cvs.fillText("TOUCH TO GO TO MAIN SCREEN", game.w/2, game.h/1.7);
+game.cvs.restore();
+}
+
+
+function showInfo() {
+
+}
+
+
+function drawButton(btn) {
+game.cvs.save();
+if (!btn.lineWidth) game.cvs.lineWidth = 3;
+else game.cvs.lineWidth = btn.lineWidth;
+roundRect(btn, game.cvs);
+game.cvs.font = btn.font;
+if (btn.textAlign) game.cvs.textAlign = btn.textAlign;
+if (btn.textBaseline) game.cvs.textBaseline = btn.textBaseline;
+if (btn.text) {
+if (btn.txtStroke) {
+game.cvs.strokeStyle = btn.txtStroke;
+game.cvs.strokeText(btn.text, btn.x, btn.y+1);
+}
+if (btn.txtFill) {
+game.cvs.fillStyle = btn.txtFill;
+game.cvs.fillText(btn.text, btn.x, btn.y);
+}
+}
+game.cvs.restore();
+}
+
+
+function Player() {
+this.health = 75;
+this.totalHealth = 75;
+this.x = game.w/2;
+this.y = game.h/2;
+this.w = Math.round(Math.min(game.w/11, game.h/9));
+this.h = Math.round(Math.min(game.w/11, game.h/9));
+this.xSp = 0;
+this.ySp = 0;
+this.angle = 0.3;
+//this.arsenal = [new Weapon("Pistol")];
+// for practicing with all weapons use the next line
+this.arsenal = [new Weapon("Pistol"), new Weapon("Rifle"), new Weapon("Sniper Rifle"), new Weapon("Shotgun"), new Weapon("Machine Gun"), new Weapon("Cluster Grenades"), new Weapon("Rocket Launcher")];
+this.weapon = 0;
+this.reloadTime = this.arsenal[0].reloadTime;
+this.reload = this.reloadTime;
+this.fire = fire;
+this.refresh = function () {
+this.x += this.xSp;
+this.y += this.ySp;
+this.x = Math.max(this.x, this.w/2);
+this.x = Math.min(game.w - this.w/2, this.x);
+this.y = Math.max(this.w/2, this.y);
+this.y = Math.min(game.h - this.w/2, this.y);
+if (this.arsenal[this.weapon].ammo <= 0) this.changeWeapon();
+drawTank(this, game.cvs);
+this.reload = Math.max(0, this.reload - 1);
+game.cvs.save();
+game.cvs.strokeStyle = "black";
+game.cvs.fillStyle = "white";
+game.cvs.lineWidth = 1;
+game.cvs.fillRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 10, game.player.w, 4);
+game.cvs.strokeRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 10, game.player.w, 4);
+game.cvs.fillStyle = "red";
+game.cvs.fillRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 17, game.player.w, 4);
+game.cvs.strokeRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 17, game.player.w, 4);
+var txtSize = Math.round(Math.min(game.w/23, game.h/17));
+game.cvs.font = txtSize + "px Arial";
+game.cvs.fillStyle = "black";
+game.cvs.fillRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 10, game.player.reload / Math.max(game.player.reloadTime, game.player.reload) * game.player.w, 4);
+game.cvs.fillStyle = "rgb(0,255,0)";
+game.cvs.fillRect(game.player.x - game.player.w/2, game.player.y - game.player.h/2 - 17, game.player.health / game.player.totalHealth * game.player.w, 4);
+game.cvs.fillStyle = "black";
+game.cvs.strokeStyle = "white";
+game.cvs.textAlign = "right";
+game.cvs.textBaseline = "top";
+var ammo = game.player.arsenal[game.player.weapon].ammo;
+if (ammo > 999999999) ammo = "Unlimited";
+game.cvs.strokeText("AMMO: " + ammo, game.w - 5, 0);
+game.cvs.fillText("AMMO: " + ammo, game.w - 5, 0);
+game.cvs.strokeText("WEAPON: " + game.player.arsenal[game.player.weapon].name, game.w - 5, txtSize, game.w/2);
+game.cvs.fillText("WEAPON: " + game.player.arsenal[game.player.weapon].name, game.w - 5, txtSize, game.w/2);
+game.cvs.restore();
+}
+this.changeWeapon = function () {
+if (this.arsenal[this.weapon].ammo == 0) {
+this.arsenal.splice(this.weapon, 1);
+this.weapon = 0;
+}
+else this.weapon ++;
+if (this.weapon >= this.arsenal.length) this.weapon = 0;
+this.reloadTime = this.arsenal[this.weapon].reloadTime;
+}
+}
+
+
+function Trackpad() {
+this.r = Math.round(Math.min(game.w/5, game.h/5));
+this.w = this.r * 2;
+this.h = this.r * 2;
+this.x = this.r + 5;
+this.y = game.h - this.r - 10;
+this.fill = "cyan";
+this.stroke = "black";
+this.text = "•";
+this.txtFill = "white";
+this.lineWidth = 2;
+this.font = Math.round(this.r/1.5) + "px arial";
+this.textAlign = "center";
+this.textBaseline = "middle";
+}
+
+
+function FireBtn() {
+this.txtSize = Math.round(Math.min(game.w/8, game.h/8));
+this.font = this.txtSize + "px Futura";
+this.w = Math.round(this.txtSize * 3.3);
+this.h = Math.round(this.txtSize * 1.4);
+this.text = "FIRE";
+this.x = Math.round(game.w - this.w/2 - 10);
+this.y = Math.round(game.h - this.h/2 - 10);
+this.r = Math.round(this.txtSize/5);
+this.fill = "blue";
+this.stroke = "black";
+this.txtFill = "red";
+this.txtStroke = "black";
+this.textAlign = "center";
+this.textBaseline = "middle";
+this.lineWidth = 2;
+this.click = function () {
+game.player.fire();
+}
+}
+
+
+function fire() {
+if (this.reload <= 0) {
+this.reload = this.reloadTime;
+this.arsenal[this.weapon].ammo --;
+switch (this.arsenal[this.weapon].name) {
+case "Pistol":
+case "Rifle":
+case "Machine Gun":
+case "Sniper Rifle":
+case "Cluster Grenades":
+case "Rocket Launcher":
+game.bullets.push(new Bullet());
+break;
+case "Shotgun":
+game.bullets.push(new Bullet());
+game.bullets.push(new Bullet());
+game.bullets.push(new Bullet());
+break;
+}
+}
+}
+
+
+function Weapon(type) {
+var obj = {};
+obj.name = type;
+if (type == "Pistol") {
+obj.ammo = 999999999999999;
+obj.reloadTime = 20;
+}
+else if (type == "Rifle") {
+obj.ammo = 15;
+obj.reloadTime = 20;
+}
+else if (type == "Machine Gun") {
+obj.ammo = 30;
+obj.reloadTime = 5;
+}
+else if (type == "Shotgun") {
+obj.ammo = 15;
+obj.reloadTime = 25;
+}
+else if (type == "Sniper Rifle") {
+obj.ammo = 15;
+obj.reloadTime = 20;
+}
+else if (type == "Cluster Grenades") {
+obj.ammo = 10;
+obj.reloadTime = 30;
+}
+else if (type == "Rocket Launcher") {
+obj.ammo = 5;
+obj.reloadTime = 45;
+}
+
+return obj;
+}
+
+
+function Bullet(weapon, number) {
+this.x = game.player.x;
+this.y = game.player.y;
+if (number) this.number = number;
+this.angle = game.player.angle;
+if (!weapon)this.name = game.player.arsenal[game.player.weapon].name;
+else this.name = weapon;
+switch (this.name) {
+case "Pistol":
+case "Machine Gun":
+this.xSp = Math.cos(game.player.angle) * 10 * bspeed;
+this.ySp = -Math.sin(game.player.angle) * 10 * bspeed;
+this.r = 2;
+this.damage = 1;
+break;
+case "Rifle":
+this.xSp = Math.cos(game.player.angle) * 10 * bspeed;
+this.ySp = -Math.sin(game.player.angle) * 10 * bspeed;
+this.r = 3;
+this.damage = 1000;
+break;
+case "Shotgun":
+var ang = game.player.angle + (Math.random() - Math.random())/2;
+this.xSp = Math.cos(ang) * 10 * bspeed;
+this.ySp = -Math.sin(ang) * 10 * bspeed;
+this.r = 2;
+this.damage = 1;
+break;
+case "Sniper Rifle":
+this.xSp = Math.cos(game.player.angle) * 20 * bspeed;
+this.ySp = -Math.sin(game.player.angle) * 20 * bspeed
+this.r = 2;
+this.damage = 1;
+break;
+case "Cluster Grenades":
+this.xSp = Math.cos(game.player.angle) * 10 * bspeed;
+this.ySp = -Math.sin(game.player.angle)* 10 * bspeed;
+this.damage = 1000;
+this.r = 3.5;
+break;
+case "Shrapnel":
+for (var a = 0; a < game.bullets.length; a ++) {
+if (game.bullets[a].damage == "cluster") {
+this.x = game.bullets[a].x;
+this.y = game.bullets[a].y;
+}
+}
+var angl = Math.random() * Math.PI * 2;
+this.xSp = Math.cos(angl) * 10 * bspeed;
+this.ySp = -Math.sin(angl) * 10 * bspeed;
+this.damage = 1;
+this.r = 2;
+break;
+case "Rocket Launcher":
+this.xSp = Math.cos(game.player.angle) * 15 * bspeed;
+this.ySp = -Math.sin(game.player.angle) * 15 * bspeed;
+this.r = 10;
+this.angl = game.player.angle;
+this.damage = 1000;
+break;
+case "Explosion":
+for (var a = 0; a < game.bullets.length; a ++) {
+if (game.bullets[a].damage == "explode") {
+this.x = game.bullets[a].x + Math.random()*40 - Math.random()*40;
+this.y = game.bullets[a].y + Math.random()*40 - Math.random()*40;
+}
+}
+if (!number && number != 0) this.number = 2;
+this.xSp = 0;
+this.ySp = 0;
+this.life = Math.max(Math.random() * 20, 5);
+this.counter = 0;
+this.green = Math.random() * 255;
+this.r = 0;
+this.damage = 1000;
+break;
+}
+if (this.xSp != 0 || this.ySp != 0) {
+this.x += Math.cos(game.player.angle) * game.player.w/2.4;
+this.y += -Math.sin(game.player.angle) * game.player.w/2.4;
+}
+this.refresh = function () {
+this.x += this.xSp;
+this.y += this.ySp;
+game.cvs.save();
+game.cvs.fillStyle = "black";
+switch (this.name) {
+case "Pistol":
+case "Rifle":
+case "Machine Gun":
+case "Shotgun":
+case "Sniper Rifle":
+case "Shrapnel":
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.closePath();
+break;
+case "Cluster Grenades":
+if (this.damage >= 1000) {
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.closePath();
+}
+else {
+this.damage = "cluster";
+for (var a = 0; a < game.bullets.length; a ++) {
+if (game.bullets[a].damage == "cluster") {
+for (var b = 0; b < 5; b ++) {
+game.bullets.push(new Bullet("Shrapnel"));
+}
+game.bullets.splice(a, 1);
+a += game.bullets.length;
+}
+}
+}
+break;
+case "Rocket Launcher":
+if (this.damage == 1000) {
+game.cvs.fillStyle = "white";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 0.5
+game.cvs.translate(this.x, this.y);
+game.cvs.rotate(-this.angl);
+game.cvs.strokeRect(this.r * -0.3, this.r * -0.2, this.r * 0.6, this.r * 0.4);
+game.cvs.fillRect(this.r * -0.3, this.r * -0.2, this.r * 0.6, this.r * 0.4);
+game.cvs.fillStyle = "red";
+game.cvs.beginPath();
+game.cvs.moveTo(this.r * 0.3, this.r * -0.2);
+game.cvs.lineTo(this.r * 0.55, 0);
+game.cvs.lineTo(this.r * 0.3, this.r * 0.2);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.moveTo(this.r * -0.3, this.r * 0.2);
+game.cvs.lineTo(this.r * -0.4, this.r * 0.3);
+game.cvs.lineTo(this.r * -0.1, this.r * 0.2);
+game.cvs.stroke();
+game.cvs.fill();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.moveTo(this.r * -0.3, this.r * -0.2);
+game.cvs.lineTo(this.r * -0.4, this.r * -0.3);
+game.cvs.lineTo(this.r * -0.1, this.r * -0.2);
+game.cvs.stroke();
+game.cvs.fill();
+game.cvs.closePath();
+}
+else {
+this.damage = "explode";
+for (var a = 0; a < game.bullets.length; a ++) {
+if (game.bullets[a].damage == "explode") {
+for (var b = 0; b < 5; b ++) {
+game.bullets.push(new Bullet("Explosion"));
+}
+game.bullets.splice(a, 1);
+a += game.bullets.length;
+}
+}
+}
+break;
+case "Explosion":
+if (this.counter < this.life) {
+this.counter ++;
+this.r = Math.sqrt(this.counter) * 6;
+}
+else {
+this.life --;
+this.r = Math.sqrt(this.life) * 6;
+}
+this.green += Math.random() - Math.random();
+this.green = Math.max(this.green, 0);
+this.green = Math.min(this.green, 255);
+game.cvs.fillStyle = "rgb(255," + Math.round(this.green) + ",0)";
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.closePath();
+if (this.life <= 0) {
+if (this.number > 0) {
+this.damage = "explode";
+game.bullets.push(new Bullet("Explosion", this.number - 1));
+this.number = 0;
+}
+for (var a = 0; a < game.bullets.length; a ++) {
+if (game.bullets[a].life <= 0) {
+game.bullets.splice(a, 1);
+a += game.bullets.length;
+}
+}
+}
+break;
+}
+game.cvs.restore();
+}
+}
+
+
+function Enemy() {
+this.pos = Math.ceil(Math.random() * 4);
+this.w = game.player.w;
+this.h = this.w * 1.2;
+if (this.pos == 1) {
+this.y = this.h * Math.round(Math.random() * -4);
+this.x = Math.round(Math.random() * game.w * 2) - game.w/2;
+}
+else if (this.pos == 2) {
+this.y = this.h * Math.round(Math.random() * 4) + game.h;
+this.x = Math.round(Math.random() * game.w * 2) - game.w/2;
+}
+else if (this.pos == 3) {
+this.x = this.h * Math.round(Math.random() * -4);
+this.y = Math.round(Math.random() * game.h * 2) - game.h/2;
+}
+else if (this.pos == 4) {
+this.x = this.h * Math.round(Math.random() * 4) + game.w;
+this.y = Math.round(Math.random() * game.h * 2) - game.h/2;
+}
+this.xSp = 0;
+this.ySp = 0;
+this.angle = 0;
+this.refresh = function () {
+if (this.x < game.player.x) this.xSp += 0.15;
+else this.xSp -= 0.15;
+if (this.y < game.player.y) this.ySp += 0.15;
+else this.ySp -= 0.15;
+this.xSp *= 0.995;
+this.ySp *= 0.995;
+this.angle = -Math.atan2(this.ySp, this.xSp);
+this.x += this.xSp;
+this.y += this.ySp;
+drawCar(this, game.cvs);
+}
+}
+
+
+function Bonus() {
+var choice = Math.floor(Math.random()*22) + 1;
+if (choice <= 6) choice = 1;
+else if (choice <= 10) choice = 2;
+else choice = Math.ceil((choice-10)/2 + 2);
+this.r = 10;
+this.life = 240;
+this.x = game.trackpad.x;
+this.y = game.trackpad.y;
+while (Math.sqrt(Math.pow(this.x - game.trackpad.x, 2) + Math.pow(this.y - game.trackpad.y, 2)) < game.trackpad.w/2 + this.r || (Math.abs(this.x - game.fireBtn.x) < game.fireBtn.w/2 + this.r && Math.abs(this.y - game.fireBtn.y) < game.fireBtn.h/2 + this.r) || (Math.abs(this.x - game.player.x) < game.player.w + this.r*3 && Math.abs(this.y - game.player.y) < game.player.h + this.r*3)) {
+this.x = Math.random() * (game.w - this.r * 2) + this.r;
+this.y = Math.random() * (game.h - this.r * 2) + this.r;
+}
+switch (choice) {
+case 1:
+this.name = "health";
+this.refresh = function () {
+this.life --;
+game.cvs.save();
+game.cvs.fillStyle = "rgb(0,255,0)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.lineWidth = 2.5;
+game.cvs.strokeStyle = "rgb(255,255,0)";
+game.cvs.beginPath();
+game.cvs.moveTo(this.x, this.y - this.r * 0.7);
+game.cvs.lineTo(this.x, this.y + this.r * 0.7);
+game.cvs.moveTo(this.x - this.r * 0.7, this.y);
+game.cvs.lineTo(this.x + this.r * 0.7, this.y);
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.restore();
+}
+break;
+case 2:
+this.name = "armor";
+this.refresh = function () {
+this.life --;
+game.cvs.save();
+game.cvs.fillStyle = "rgb(0,255,0)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.lineWidth = 1.5;
+game.cvs.strokeStyle = "rgb(130,130,130)";
+game.cvs.fillStyle = "rgb(90,90,90)";
+game.cvs.beginPath();
+game.cvs.moveTo(this.x - this.r * 0.55, this.y - this.r * 0.45);
+game.cvs.quadraticCurveTo(this.x - this.r * 0.6, this.y + this.r * 0.6, this.x, this.y + this.r * 0.6);
+game.cvs.quadraticCurveTo(this.x + this.r * 0.6, this.y + this.r * 0.6, this.x + this.r * 0.55, this.y - this.r * 0.45);
+game.cvs.quadraticCurveTo(this.x + this.r * 0.1, this.y - this.r * 0.2, this.x, this.y - this.r * 0.6);
+game.cvs.quadraticCurveTo(this.x - this.r * 0.1, this.y - this.r * 0.2, this.x - this.r * 0.55, this.y - this.r * 0.45);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.restore();
+}
+break;
+case 3:
+this.name = "rifle";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "rgb(0,255,255)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.textAlign = "center";
+game.cvs.textBaseline = "middle";
+game.cvs.font = this.r * 1.5 + "px Chalkduster";
+game.cvs.fillStyle = "black";
+game.cvs.fillText("R", this.x, this.y - 1);
+}
+break;
+case 4:
+this.name = "sniper rifle";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "rgb(0,255,255)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.moveTo(this.x, this.y + this.r * 1.25);
+game.cvs.lineTo(this.x, this.y + this.r * 0.75);
+game.cvs.moveTo(this.x, this.y - this.r * 1.25);
+game.cvs.lineTo(this.x, this.y - this.r * 0.75);
+game.cvs.moveTo(this.x + this.r * 1.25, this.y);
+game.cvs.lineTo(this.x + this.r * 0.75, this.y);
+game.cvs.moveTo(this.x - this.r * 1.25, this.y);
+game.cvs.lineTo(this.x - this.r * 0.75, this.y);
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.textAlign = "center";
+game.cvs.textBaseline = "middle";
+game.cvs.font = this.r * 1.5 + "px Chalkduster";
+game.cvs.fillStyle = "black";
+game.cvs.fillText("R", this.x, this.y - 1);
+}
+break;
+case 5:
+this.name = "shotgun";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "red";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.fillStyle = "black";
+game.cvs.beginPath();
+game.cvs.arc(this.x - this.r*0.45, this.y + this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x + this.r*0.45, this.y - this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+}
+break;
+case 6:
+this.name = "machine gun";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "red";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.fillStyle = "black";
+game.cvs.beginPath();
+game.cvs.arc(this.x - this.r*0.45, this.y + this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x + this.r*0.45, this.y - this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x + this.r*0.45, this.y + this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.arc(this.x - this.r*0.45, this.y - this.r*0.45, this.r/5.5, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+}
+break;
+case 7:
+this.name = "cluster grenades";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "rgb(0,190,0)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+game.cvs.beginPath();
+game.cvs.moveTo(this.x - this.r * 0.7, this.y - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)));
+game.cvs.lineTo(this.x + this.r * 0.7, this.y - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)));
+game.cvs.moveTo(this.x - this.r * 0.9, this.y - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)));
+game.cvs.lineTo(this.x + this.r * 0.9, this.y - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)));
+game.cvs.moveTo(this.x - this.r, this.y);
+game.cvs.lineTo(this.x + this.r, this.y);
+game.cvs.moveTo(this.x - this.r * 0.9, this.y + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)));
+game.cvs.lineTo(this.x + this.r * 0.9, this.y + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)));
+game.cvs.moveTo(this.x - this.r * 0.7, this.y + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)));
+game.cvs.lineTo(this.x + this.r * 0.7, this.y + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)));
+game.cvs.moveTo(this.x - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)), this.y - this.r * 0.7);
+game.cvs.lineTo(this.x - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)), this.y + this.r * 0.7);
+game.cvs.moveTo(this.x - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)), this.y - this.r * 0.9);
+game.cvs.lineTo(this.x - Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)), this.y + this.r * 0.9);
+game.cvs.moveTo(this.x, this.y - this.r);
+game.cvs.lineTo(this.x, this.y + this.r);
+game.cvs.moveTo(this.x + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)), this.y - this.r * 0.7);
+game.cvs.lineTo(this.x + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.7, 2)), this.y + this.r * 0.7);
+game.cvs.moveTo(this.x + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)), this.y - this.r * 0.9);
+game.cvs.lineTo(this.x + Math.sqrt(this.r*this.r - Math.pow(this.r * 0.9, 2)), this.y + this.r * 0.9);
+game.cvs.stroke();
+game.cvs.closePath();
+}
+break;
+case 8:
+this.name = "rocket launcher";
+this.refresh = function () {
+this.life --;
+game.cvs.fillStyle = "rgb(255,255,0)";
+game.cvs.strokeStyle = "black";
+game.cvs.lineWidth = 1;
+game.cvs.beginPath();
+game.cvs.arc(this.x, this.y, this.r, 0, Math.PI*2, true);
+game.cvs.fill();
+game.cvs.stroke();
+game.cvs.closePath();
+var obj = new Bullet("Rocket Launcher");
+obj.xSp = 0;
+obj.ySp = 0;
+obj.r = this.r*1.5;
+obj.x = this.x;
+obj.y = this.y;
+obj.angl = 0.8;
+obj.refresh();
+}
+break;
+
+}
+this.redeem = function () {
+switch (this.name) {
+case "health":
+game.player.health = Math.min(game.player.totalHealth, game.player.health + 15);
+break;
+case "armor":
+game.player.totalHealth += 10;
+game.player.health += 10;
+break;
+case "rifle":
+addWeapon(new Weapon("Rifle"));
+break;
+case "sniper rifle":
+addWeapon(new Weapon("Sniper Rifle"));
+break;
+case "shotgun":
+addWeapon(new Weapon("Shotgun"));
+break;
+case "machine gun":
+addWeapon(new Weapon("Machine Gun"));
+break;
+case "cluster grenades":
+addWeapon(new Weapon("Cluster Grenades"));
+break;
+case "rocket launcher":
+addWeapon(new Weapon("Rocket Launcher"));
+break;
+}
+}
+}
+
+
+function addWeapon(obj) {
+var alreadyHave = false;
+for (var a = 0; a < game.player.arsenal.length; a ++) {
+if (obj.name == game.player.arsenal[a].name) {
+alreadyHave = true;
+game.player.arsenal[a].ammo += obj.ammo;
+a += game.player.arsenal.length;
+}
+}
+if (!alreadyHave) game.player.arsenal.push(new Weapon(obj.name));
+}
+
+
+</script>
+<style>
+body {
+padding:0;
+margin:0;
+}
+
+</style>
+</head>
+<body onLoad="start();">
+<canvas id="cvs"> </canvas>
+
+
+</body>
+</html>
